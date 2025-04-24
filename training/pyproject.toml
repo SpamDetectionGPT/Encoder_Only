@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Transformer Encoder implementation from scratch based on a Jupyter Notebook."
 requires-python = ">=3.8"
 dependencies = [
-    "torch>=1.8",  # Adjust version constraint if needed
+    "datasets>=3.1.0",
+    "scikit-learn>=1.3.2",
+    "torch>=1.8", # Adjust version constraint if needed
     "transformers>=4.0", # Adjust version constraint if needed
 ]
 

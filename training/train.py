@@ -15,6 +15,17 @@ from utils.helpers import (
 from data.preparation import prepare_data  # Import data preparation function
 
 
+# --- Device Detection Function ---
+def get_device():
+    """Get the best available device (CUDA, MPS, or CPU)."""
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        return torch.device("mps")
+    else:
+        return torch.device("cpu")
+
+
 # --- Main Training Function ---
 def main():
     args = parse_train_args()  # Use the imported argument parser
@@ -37,13 +48,22 @@ def main():
         print(f"Failed to load tokenizer '{args.model_ckpt}'. Error: {e}")
         exit()
 
-    # --- Prepare Data ---
+    # --- Load and Prepare Dataset ---
     try:
-        train_dataloader, eval_dataloader = prepare_data(
-            args, tokenizer
-        )  # Use imported function
+        # Define paths to ham and spam JSON files
+        ham_path = "../datasets/combined_ham.json"
+        spam_path = "../datasets/combined_spam.json"
+
+        print(f"Loading ham data from {ham_path} and spam data from {spam_path}...")
+        from data.preparation import combineandload_spamandham
+
+        dataset = combineandload_spamandham(ham_path, spam_path)
+
+        # Prepare data using the loaded dataset
+        train_dataloader, eval_dataloader = prepare_data(args, tokenizer, dataset)
     except Exception as e:
         print(f"Data preparation failed. Error: {e}")
+        print(f"Detailed error: {str(e)}")
         exit()
 
     # --- Instantiate Model ---

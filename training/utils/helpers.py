@@ -18,12 +18,12 @@ def parse_train_args():
         default="bert-base-uncased",
         help="Base model checkpoint for config/tokenizer",
     )
-    parser.add_argument(
-        "--dataset_name",
-        type=str,
-        default="imdb",
-        help="Name of the dataset (from Hugging Face or path to custom data)",
-    )
+    # parser.add_argument(
+    #     "--dataset_name",
+    #     type=str,
+    #     default="imdb",
+    #     help="Name of the dataset (from Hugging Face or path to custom data)",
+    # )
     # Add arguments for dataset splits, text/label columns if custom
     parser.add_argument(
         "--text_column",

@@ -31,6 +31,14 @@ def main():
     args = parse_train_args()  # Use the imported argument parser
     device = get_device()  # Use the imported device helper
     print(f"Using device: {device}")
+    
+    # Check if multiple GPUs are available
+    if torch.cuda.is_available():
+        num_gpus = torch.cuda.device_count()
+        print(f"Found {num_gpus} GPUs!")
+    else:
+        num_gpus = 0
+        print("No GPUs found, using CPU.")
 
     # --- Load Config and Tokenizer ---
     print(f"Loading config for {args.model_ckpt}...")
@@ -51,8 +59,8 @@ def main():
     # --- Load and Prepare Dataset ---
     try:
         # Define paths to ham and spam JSON files
-        ham_path = "../datasets/combined_ham.json"
-        spam_path = "../datasets/combined_spam.json"
+        ham_path = "datasets/combined_ham.json"
+        spam_path = "datasets/combined_spam.json"
 
         print(f"Loading ham data from {ham_path} and spam data from {spam_path}...")
         from data.preparation import combineandload_spamandham
@@ -69,21 +77,41 @@ def main():
     # --- Instantiate Model ---
     print("Instantiating the custom Transformer model...")
     model = TransformerForSequenceClassification(config)
+    
+    # Wrap model with DataParallel if multiple GPUs are available
+    if num_gpus > 1:
+        print(f"Using DataParallel across {num_gpus} GPUs")
+        model = nn.DataParallel(model)
+        
     model.to(device)
 
     # --- Optimizer and Loss Function ---
     optimizer = optim.AdamW(model.parameters(), lr=args.lr)
     loss_fn = nn.CrossEntropyLoss()  # Standard for classification
 
+    # Create output directory
+    output_dir = args.output_dir
+    os.makedirs(output_dir, exist_ok=True)
+    checkpoint_dir = os.path.join(output_dir, "checkpoints")
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    print(f"Checkpoint directory created at {checkpoint_dir}")
+
+    # Track best model performance
+    best_accuracy = 0.0
+    
     # --- Training Loop ---
     num_training_steps = args.epochs * len(train_dataloader)
     progress_bar = tqdm(range(num_training_steps))
+    
+    # Calculate checkpoint frequency (save every X batches)
+    checkpoint_freq = min(500, len(train_dataloader) // 2)  # Save twice per epoch or every 500 batches
+    global_step = 0
 
     print("Starting training...")
     model.train()  # Ensure model starts in training mode
     for epoch in range(args.epochs):
         total_loss = 0
-        for batch in train_dataloader:
+        for batch_idx, batch in enumerate(train_dataloader):
             # Move batch to device
             # Filter batch to only include keys the model expects in its forward pass
             # Currently, our model only needs 'input_ids'. Labels are needed for loss.
@@ -100,8 +128,31 @@ def main():
             optimizer.step()
 
             total_loss += loss.item()
+            global_step += 1
             progress_bar.update(1)
             progress_bar.set_postfix({"Epoch": epoch + 1, "Loss": loss.item()})
+            
+            # Save periodic checkpoint (regardless of performance)
+            if global_step % checkpoint_freq == 0:
+                periodic_checkpoint_path = os.path.join(checkpoint_dir, f"checkpoint_step_{global_step}.pt")
+                print(f"\nSaving periodic checkpoint at step {global_step} to {periodic_checkpoint_path}")
+                # Save checkpoint with all information to resume training
+                checkpoint = {
+                    "epoch": epoch,
+                    "global_step": global_step,
+                    "model_state_dict": model.module.state_dict() if isinstance(model, nn.DataParallel) else model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "loss": loss.item(),
+                }
+                torch.save(checkpoint, periodic_checkpoint_path)
+                # Keep only the 3 most recent checkpoints to save disk space
+                checkpoint_files = sorted(
+                    [f for f in os.listdir(checkpoint_dir) if f.startswith("checkpoint_step_")],
+                    key=lambda x: int(x.split("_")[2].split(".")[0])
+                )
+                if len(checkpoint_files) > 3:
+                    for old_file in checkpoint_files[:-3]:
+                        os.remove(os.path.join(checkpoint_dir, old_file))
 
         avg_train_loss = total_loss / len(train_dataloader)
         print(
@@ -140,21 +191,62 @@ def main():
             print(
                 f"Validation Loss: {avg_eval_loss:.4f} - Validation Accuracy: {accuracy:.4f}"
             )
+            
+            # Save the best model based on validation accuracy
+            if accuracy > best_accuracy:
+                best_accuracy = accuracy
+                best_model_path = os.path.join(output_dir, "best_model.pt")
+                print(f"New best accuracy: {best_accuracy:.4f}! Saving model to {best_model_path}")
+                # Save the best model
+                if isinstance(model, nn.DataParallel):
+                    torch.save(model.module.state_dict(), best_model_path)
+                else:
+                    torch.save(model.state_dict(), best_model_path)
+                
+                # Save a complete checkpoint too
+                best_checkpoint_path = os.path.join(checkpoint_dir, "best_checkpoint.pt")
+                checkpoint = {
+                    "epoch": epoch,
+                    "global_step": global_step,
+                    "model_state_dict": model.module.state_dict() if isinstance(model, nn.DataParallel) else model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "accuracy": accuracy,
+                    "loss": avg_eval_loss,
+                }
+                torch.save(checkpoint, best_checkpoint_path)
+                
             model.train()  # Set back to train mode for next epoch
         else:
             print("Skipping validation as no evaluation dataloader is available.")
 
-    # --- Save Model ---
+    # --- Save Final Model ---
     try:
-        output_dir = args.output_dir
-        os.makedirs(output_dir, exist_ok=True)
-        print(f"Saving model to {output_dir}")
-        # Save model state dict
-        torch.save(model.state_dict(), os.path.join(output_dir, "pytorch_model.bin"))
+        print(f"Saving final model to {output_dir}")
+        
+        # Save model state dict (unwrap DataParallel if used)
+        final_model_path = os.path.join(output_dir, "pytorch_model.bin")
+        if isinstance(model, nn.DataParallel):
+            torch.save(model.module.state_dict(), final_model_path)
+        else:
+            torch.save(model.state_dict(), final_model_path)
+        
+        # Save final checkpoint with all training state
+        final_checkpoint_path = os.path.join(checkpoint_dir, "final_checkpoint.pt")
+        checkpoint = {
+            "epoch": args.epochs,
+            "global_step": global_step,
+            "model_state_dict": model.module.state_dict() if isinstance(model, nn.DataParallel) else model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            "best_accuracy": best_accuracy,
+        }
+        torch.save(checkpoint, final_checkpoint_path)
+            
         # Save config
         config.save_pretrained(output_dir)
         # Save tokenizer
         tokenizer.save_pretrained(output_dir)
+        
+        print(f"Training finished. Best validation accuracy: {best_accuracy:.4f}")
     except Exception as e:
         print(f"Error saving model/config/tokenizer: {e}")
 

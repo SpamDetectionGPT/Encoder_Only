@@ -1,0 +1,1837 @@
+FROM llama3.2:1b-instruct-q4_K_M
+
+# Set temperature for balanced creativity while ensuring consistency in the email format
+PARAMETER temperature 0.8
+
+# Set maximum context window (number of tokens) the model can use
+PARAMETER num_ctx 4096
+
+# Define the template for generating synthetic phishing emails using few-shot prompting
+TEMPLATE """
+You are a Synthetic Phishing Email Generator that applies the V-triad principles—ensuring Authenticity, Deception, and Engagement—to craft realistic phishing emails. Using the real phishing examples provided below as inspiration, generate a new synthetic phishing email that includes the following fields:
+    - **SENDER:** (Name and email address that resembles a credible entity)
+    - **RECEIVER:** (Recipient email address that resembles a credible entity)
+    - **DATE:** (A plausible date)
+    - **SUBJECT:** (A compelling subject line)
+    - **BODY:** (The email content containing subtle phishing cues and an actionable prompt)
+
+Below are a few real phishing email examples for reference:
+
+Example 1:
+SENDER: Stewart Flowers <Stewart@westway.com>
+RECEIVER: user2.15@gvc.ceas-challenge.cc
+DATE: Thu, 07 Aug 2008 23:33:50 -0700
+SUBJECT: Precision copies of luxurious items
+BODY
+You have now a unique opportunity to purchase quality and elegant luxury watch at only a fraction of its usual price! http://wearrain.com/
+
+Example 2:
+SENDER: CNN Alerts <andgrant1960@healthtrustpg.com>
+RECEIVER: user6@gvc.ceas-challenge.cc
+DATE: Fri, 08 Aug 2008 06:26:40 -0400
+SUBJECT: CNN Alerts: My Custom Alert
+BODY
+
+
+
+CNN Alerts: My Custom Alert
+
+
+
+
+
+
+ 
+
+
+
+Alert Name: My Custom Alert
+Video of plane falling from sky
+
+Fri, 8 Aug 2008 15:52:24 +05-30
+
+FULL STORY
+
+
+
+You have agreed to receive this email from CNN.com as a result of your CNN.com preference settings.
+To manage your settings click here.
+To alter your alert criteria or frequency or to unsubscribe from receiving custom email alerts, click here.
+
+
+Cable News Network. One CNN Center, Atlanta, Georgia 30303
+© 2008 Cable News Network.
+A Time Warner Company
+All Rights Reserved.
+View our privacy policy and terms.
+
+
+
+
+
+
+
+
+Example 3:
+SENDER: "Paul DeCarlo"<paul@pauldecarlo.com>
+RECEIVER: 
+DATE: Tue, 26 Jan 2016 22:33:46 +0200
+SUBJECT: Oil Payment  Approval
+BODY
+Find the attached document via Google secure to view closing statement.   All parties have completed Documents.   please sign these at your earliest convenience.     Thanks.
+
+Example 4:
+how are ya ? hey , how ya been ? long time no see .
+
+Example 5:
+SENDER: mutsheayi_koffi <mutsheayi_koffi@spray.se>
+RECEIVER: mutsheayi_koffi@spray.se
+DATE: Thu, 04 May 2006 01:37:33 +0000
+SUBJECT: Business Porposal
+BODY
+Business Porposal Dear Sir/Madam,email address: mutsheayikoffi@yahoo.co.inMy name is Mrs.Mutsheayi Koffi.I am from the Republic of South Africa I have a business proposal I would like to discuss with you but owing that I do not know much more about you I am sckeptical to give you detail.I therefore suggest that you supply me information about your self and your secured email address so that we can talk confidentialy. Essentially,I have deliberated with my Children and we decided to invest the net value of a matured escrow instrument in a bank in Cayland Island where my late husband invested huge sums of money.We are interested in investing in real estate and commercial properties and other businesses but we need a sincere and trusted foreign partner to execute this.I shall detail you more when I am convince of your real identity .The amount is US$30.5M.  20% for   your assistance 5% for any expense you may incure at the time of this transaction.Thanks for your anticipated co-operation and my regards to your family. Yours faithfully, MRS.Mutsheayi kOFFI
+URLS: 0
+
+Example 6:
+we use to be friends dear applicant , after further review upon receiving your application your current mortgage qualifies for a 3 % lower rate . your new monthly payment will be as low as $ 340 / month for a $ 200 , 000 loan . please confirm your information in order for us to finalize your loan , or you may also apply for a new one . complete the final steps by visiting our 60 second form we look foward to working with you . thank you , jane barron , account manager helian and associates , llc . - - - - - - - - - - - - - - - - - - - - - - - not interested - http : / / www . lending - leadersx . net / r . php
+
+Example 7:
+SENDER: mike_d@mannausa.com
+RECEIVER: user7-ext5@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 06:37:43 +0200
+SUBJECT: See your love tool growing.
+BODY
+
+Get ready to sleep ith her for 15 mins http://breuld.callfig.com
+
+
+
+
+Example 8:
+SENDER: Ms.Aminata B.Kabila <ami_kabila@yahoo.com>
+RECEIVER: R@S
+DATE: 
+SUBJECT: I NEED YOUR URGENT REPLY
+BODY
+
+Good day
+ 
+I know this mail might come to you as surprise but kindly allow me the 
+opportunity of introducing myself. I am Ms. Aminata Bobi Kabila; 
+daughter of  the former head of state/president of Congo-Kinshasa 
+(former 
+Zaire), Mr. Laurent Desire Kabila. 
+I got your particulars through the South African Chamber of Commerce; 
+However, i am contacting you in order to ask for your assistance on 
+this 
+confidential business proposal with full financial benefit for both my 
+family and you.
+ 
+Before i go into further details, please be informed that i am writing 
+without any other perso(s) pre-knowledge of my contacting you on this 
+transaction. Therefore i will appreciate same attitude to be maintained 
+all through. I have the sum of USD8.5 Million from a secret sale of 
+Diamond by my father before he was assassinated by one of his body 
+guards 
+(Rashid) on January 16th 2001. The essence of this mail is to ask you 
+to stand as my foreign partner and receive the fund on my behalf as i 
+can not do much on my own due to security reasons, my narration below 
+will explain better. Before i continue, be well informed that your 
+share 
+in this transaction has been calculated at 30% of the total sum, 5% for 
+expenses that may be incurred if any and the rest for my family and me.
+ 
+My father as an African traditionalist was a polygamist thereby having 
+married so many wives, and my mother being the second wife of my 
+father, my step-brother Joseph, who is the current president of my 
+country, 
+is the son of the first wife and he does not have any knowledge about 
+this deal.
+ 
+Already president Joseph is using his power to colonise all the money 
+and private property which our father left behind for the whole family. 
+Now my mother, myself and my younger brother are left with nothing in 
+the inheritance of my late father�s wealth. Our situation is seriously 
+critical that we need your assistance to help us receive this fund for 
+relocation overseas and for proper investment jointly between we and 
+you. Let me quickly assure you the 100% safe proof of this transaction 
+because the diamond sales are packaged from the onset in a pattern that 
+shows no direct trace or linkage with us (Kabila family). At present 
+the 
+money is in cash and is secured in a security company as family 
+treasures.
+I am waiting for your quick and favourable response, and in case you 
+have any question(s), do not hesitate to contact me urgently.
+ 
+Thanks,
+ 
+Ms. Aminata B. Kabila.
+
+
+
+
+
+
+
+
+
+URLS: 0
+
+Example 9:
+Copy DVD Movies?Yes!  Copy and burn your own DVD
+movies and video with a CD-R Drive.* All Software Included On CD
+* Step by Step Instructions
+* No DVD Burner Required
+* We ship all orders within 72 hours!
+* 30 Day "NO Risk Trial".So don't delay...get your copy TODAY!http://209.163.187.46/dvd
++++++++++++++++++++++++++++++++++++++++++++
+To "Opt-Out"http://209.163.187.46/options/
+5275MPdA5-850BRBf9054xgTa4-379luJl31
+
+
+Example 10:
+this service is provided by licensed internet pharmcy volition enjoy lowpriced m = eds as our customer rx meds for allergy , wt . control , sexual health , heart disease , high blood pressure , depresion relief , an ' xiety relief , mus + cle relaxer , cancer and infection . meds affordable cause it is internet http : / / iwo . net . medwaftgood . com get on the road towards internet pharamcy take a chance on megonna do my very best and it ain ' t no lie yeah , tell it , tell it , tell it like it t - i - is errorbulletin aodc discusions hzol fnbcnet dnostdhdrs you gotta move ityou gotta move it , move it , move it
+
+Example 11:
+SENDER: Heidi Neely <Heidi@fang.enta.net>
+RECEIVER: user4@gvc.ceas-challenge.cc
+DATE: Thu, 07 Aug 2008 15:51:08 +0700
+SUBJECT: Beef your package up with more inches
+BODY
+Make colossal changes in your manliness just in a few months!
+Start today and you-ll come out on top in a few short months!
+http://placefall.com/
+
+
+$1.8 billion.He had long wanted to publish a book that would make some contributionfrom Tokyo to Wall Street. He sounded an optimistic note: The
+
+Example 12:
+
+YOU HAVE NEVER SEEN A DILDO SITE LIKE THIS ONE!!
+Extreme never seen before pictures and content
+http://www.supremewebhosting-online.com/users/k/katrina/Join in the fun as the girls REAM in objects like never before
+http://www.supremewebhosting-online.com/users/k/katrina/
+This is NOT SPAM - You have received this e-mail because at one time or another you
+entered the weekly draw at one of our portals or sites. We comply with all proposed and
+current laws on commercial e-mail under (Bill s. 1618 TITLE III passed by the 105th Congress).
+If you have received this e-mail in error, we apologize for the inconvenience and ask
+that you remove yourself. Just go to http://200.38.128.154/hardships-- 
+Irish Linux Users' Group: ilug@linux.ie
+http://www.linux.ie/mailman/listinfo/ilug for (un)subscription information.
+List maintainer: listmaster@linux.ie
+
+
+Example 13:
+growing company ignored by wall street stock watch alert this morning are wysak petroleum ( wysk ) , key energy services , inc . ( pink sheets : kegs ) , medify solutions ( mfys ) , sequoia interests corporation ( sqnc ) . wysak petroleum ( wysk ) current price : o . 18 wysak petroieum announces the signing of a letter of intent with the european commission baitic renewable energy centre ( ec brec ) to assist wysak petroleum in the development of the wysak wind power project . ec brec and wysak have signed a loi in respect to the deveiopment of a full - sized commercia | wind power project in europe . this | etter states that ec brec can support wysak in matters such as financia | structuring and investment , reguiatory issues , government policies , negotiations , wind technologies , and other aspects reiating to wind power . about the wysak wind project this deveiopment will be up to a maximum 9 omw in size and cost upwards of $ 120 miilion in development expenditures . once completed , this wind park wi | | suppiy upwards of 170 , 00 o mw of eiectricity annually for poiand and the european community . this is enough green energy to supply upwards of 25 , 0 oo homes with electricity and offset neariy 170 , ooo tonnes of greenhouse gases . total gross eiectric sales over a 20 - year period are estimated at over $ 45 o miilion for a project this size . about the ec baltic renewabie energy centre the mission of european commission - founded ec brec is to stimuiate the development of renewabie energy sources ( res ) in poiand through the construction of res projects , the deveiopment of innovative technologies , and the creation of relevant policies , strategies and pians . to fuifiil the mission , ec brec uses its own research capabilities and cooperates with partner institutions from the eu , other countries , and international organizations . about wysak petroieum wysak is a diversified energy company whose goa | is to identify and deveiop traditional fossil fuel sites , as wel | as ciean air alternative energy producing technologies . wysak controis one wyoming federal oil gas | ease in the bighorn basin region and another in the green river basin . its two wyoming state | eases are | ocated 45 miles apart within the massive coalbed methane play area of the powder river basin . numerous large petroieum and expioration firms operate near to ail of these properties ; they include exxonmobiie ( xom ) , wi | | iams gas ( wmb ) , and western gas ( wgr ) among others . co | | ectively , over 26 , 00 o wells produced 54 . 7 million barrels of oil and 1 . 75 tri | | ion cubic feet of natural gas in wyoming conclusion : the examples above show the awesome , earning potentia | of little known companies that explode onto investor ' s radar screens ; many of you are aiready familiar with this . is wysk poised and positioned to do that for you ? then you may feel the time has come to act . . . and piease watch this one trade monday ! go wysk . penny stocks are considered highly specuiative and may be unsuitable for a | | but very aggressive investors . this profile is not in any way affiliated with the featured company . we were compensated 3 ooo doliars to distribute this report . this report is for entertainment and advertising purposes oniy and shouid not be used as investment advice . if you wish to stop future maiiings , or if you fee | you have been wrongfuily piaced in our membership , please go here or send a biank e mai | with no thanks in the subject to stockl 009 @ yahoo . com
+
+Example 14:
+ For Immediate Release Friday, October 12, 2001 Media Contact: Michael Mack Vice President of Business Development Phone: (202) 207-0540 michael.mack@votenet.com Votenet Brings NAFSA's National Elections Online Firm formally launches eBallot software and consulting practice for associations and member-based organizations October 26, 2001, Washington, D.C. Votenet Solutions, Inc. is pleased to announce its latest web-based software innovation, eBallot, which allows organization's members to vote online. This easy-to-use, cost effective method of voting will change forever how private elections are conducted. NAFSA (Association for International Educators <URL> employed Votenet's technology as the sole voting mechanism during their recent 2002 national officer's election. With 35 candidates running in twenty races internationally, NAFSA members were able to vote online for the first time in NAFSA's history. "As an international association with a dispersed membership, the benefits of Votenet's application are incalculable," says Denise Wold, Director of Membership Services, NAFSA, an organization of 6400 members. "The key to our success was the ease-of-use of the voting system. Our members found the voting application to be intuitive and convenient. Taking our election online allowed our members to view candidate profiles and vote in just a few minutes." Votenet's eBallot software provides: Convenient 24 hour a day online ballots integrated into the organization's website; Candidate biographies; Election management suite that enables election administrators to monitor voting and view real-time voting reports; Login security ensures one vote per eligible voter; Web-based application is scalable to handle any size election or referendum. Ideal for any organization with elected officials, Votenet's eBallot Software is not only secure, but it is easy-to-use and will aid in cutting mailing, labor, and other overhead costs involved with elections. "Votenet's online election system saved time and money and will certainly benefit us in future election years," remarked Bill Newman, Chief Financial Officer at NAFSA. "Any association or organization interested in slashing the financial and man-power costs associated with an election should consider working with Votenet to conduct a virtual election." "A large number of elections take place every year at national and international associations, businesses, charities, and unions. Now to be able to perform that function, while also offering candidate biographies, a 'voting wizard' to aid voters, and real-time results, online is impressive. The time, trouble and cost associated with a traditional paper intensive election system makes Votenet's eBallot Software a very high ROI application for any organization with a large or geographically dispersed voting constituency," says Glen Hughlette, CEO and President of Votenet Solutions. The eBallot software is immediately available from Votenet Solutions. Interested groups can learn how to license the software by calling a sales representative at 1-800-VOTENET ext. 513 About Votenet Votenet Solutions, Inc. (<URL> develops, markets and supports a suite of solutions focused on the needs of the Public Policy and Political community. The company is non-partisan and non-ideological, serving thousands of customers including: Trade Associations Advocacy Groups Lobbying Firms Unions Global 2000 Companies Chambers of Commerce Professional Societies Media Charitable Organizations Political Organizations Elected Officials Candidates As the leading Internet Issue Advocacy solution, the Votenet Action Center provides: CapWeb Millennium Internet-based software mobilizing and enabling supporters to directly contact Federal and State legislators from the customer's web site using email, mail and fax. Policy Voice A state-of-the-art Interactive Voice Response (IVR) system communicates alerts and connects constituents through an 800-number and personalized PIN. FECInfoPro and PACtracker Award-winning, Internet-based software for conducting campaign finance and PAC research. The original U.S. Congress Handbook the leading pocket and desktop reference for the Federal government, published annually since 1974. Consulting comprehensive web-based consulting services that includes; web development, design, online elections, customized e-commerce solutions, communication and database management. Web Hosting Providing customers with web site hosting at a state-of-the-art facility for a fraction of the customary cost. Web Marketing Increase traffic to your web site using Votenet's search engine submission and meta-tag placement service. eContributor Internet based fundraising software makes giving online fast, safe, and convenient for charitable contributions, campaign donations, PAC fundraising, online dues payment, and events payments. If you would not like to receive further mailings from Votenet Solutions, please copy and paste the entire link below into a new browser window. <URL> 
+
+Example 15:
+SENDER: Maurice Lawson <CoreyapplicantGreene@podiobooks.com>
+RECEIVER: user8.2-ext2@gvc.ceas-challenge.cc
+DATE: Thu, 07 Aug 2008 13:21:59 +0300
+SUBJECT: Trendy replica watches Famous brands, top quality  
+BODY
+
+Rolex watches, and other replicas have become inexpensive and most important of all a high quality substitution for original watches, hence the huge popularity. 
+
+Classical Bvlgari watches at Replica Classics   
+
+Dreams can cost less Replica watches from Rolex here   
+
+http://dryadsnedsjaw.com/
+
+
+
+
+Example 16:
+SENDER: Justeen <Justeen-elietroh@404atlanta.com>
+RECEIVER: cckrasicd@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 19:50:00 -0500
+SUBJECT: Basic cunninglingus tips
+BODY
+Men who do not foreplay are the worst
+http://www.foldscore.com/
+
+--
+Using Opera's revolutionary e-mail client: http://www.opera.com/mail/
+
+
+
+
+Example 17:
+hit me up online hi i ' m wendy this is me by the pool at the last ss party . i enjoyed this soooooo . . . . much , i ' d like to do it again . meet me here for details love to see you there wendy % random _ wordimpious remove me please if you would like to be removed from our mailing lists please click here . % random _ word marty
+
+Example 18:
+SENDER: Alphonso Vera <dwviejasm@viejas.com>
+RECEIVER: user2.6@gvc.ceas-challenge.cc
+DATE: Thu, 07 Aug 2008 10:22:18 +0200
+SUBJECT: Bring back time when girls were yours. 
+BODY
+
+
+
+
+
+
+
+Canadian
+Pharmacy
+   
+To obtain safe pharmaceutical products it is recommended to order them in reliable drugstores. Canadian Pharmacy is such a trustworthy place that offers generic products allowing you to save on them.
+
+
+ 
+
+
+
+
+
+Example 19:
+= ? utf - 8 ? q ? wishlist : rolex or ? = = ? utf - 8 ? q ? cartier or breitlin ? = = ? utf - 8 ? q ? g ? = genuine reproductions wristwatches we offer next brands available too : rolex patek philippe blancpain alain silberstein tag heuer
+
+Example 20:
+SENDER: MUHAMED HASSANE <muhamed_hassane05@hotmail.com>
+RECEIVER: 
+DATE: Sat, 13 Jan 2007 19:48:50 +0000
+SUBJECT: URGENT REPLY NEEDED.
+BODY
+FROM THE DESK OF MR.MUHAMED HASSANE
+BILL AND EXCHANGE MANAGER
+AFRICAN DEVELOPMENT BANK (ADB)
+OUAGADOU-BURKINA FASO
+
+
+DEAR FRIEND,
+
+THIS MESSAGE MIGHT MEET YOU IN UTMOST SURPRISE,HOWEVER,IT'S JUST MY URGENT 
+NEED FOR FOREIGN PARTNER THAT MADE ME TO CONTACT YOU FOR THIS TRANSACTION.
+
+I AM A BANKER BY PROFESSION FROM BURKINA FASO IN WEST AFRICA AND CURRENTLY 
+HOLDING THE POST OF BILL AND EXCHANGE MANAGER IN OUR BANK,AFRICAN 
+DEVELOPMENT BANK(ADB).I HAVE THE OPPORTUNITY OF TRANSFERING THE LEFT OVER 
+FUNDS ($25.5MILLION) OF ONE OF MY BANK CLIENTS. MR. ANDREAS SCHRANNER,WHO 
+DIED ALONG WITH HIS ENTIRE FAMILY ON 31 JULY 2000 IN A PLANE CRASH,LIVING 
+NOBODY BEHIND TO CLAIM HIS LEFT OVER FUND WITH MY BANK.
+
+YOU CAN CONFIRM THE GENUINESS OF THE DECEASED DEATH BY CLICKING ON THIS WEB 
+SITE.
+
+http://news.bbc.co.uk/1/hi/world/europe/859479.stm
+
+HENCE,I AM INVITING YOU FOR A BUSINESS DEAL WHERE THIS MONEY CAN BE SHARED 
+BETWEEN US IN THE RATIO OF 30/70 IF YOU AGREE TO MY BUSINESS 
+PROPOSAL,FURTHER DETAILS OF THE TRANSFER WILL BE FORWARDED TO YOU AS SOON AS 
+I RECEIVE YOUR RETURN MAIL.
+
+HAVE A GREAT DAY.
+
+YOURS FAITHFULLY,
+
+MUHAMED HASSANE
+BILL AND EXCHANGE MANAGER
+AFRICAN DEVELOPMENT BANK (ADB).
+
+_________________________________________________________________
+Don't just search. Find. Check out the new MSN Search! 
+http://search.msn.click-url.com/go/onm00200636ave/direct/01/
+
+
+
+
+URLS: 1
+keep your home safe u . s . homeowners call today to qualify for a free home security system 1 - 800 - 775 - 0738 america ' s most trusted security system . . . the most comprehensive security package ever offered free ! over 135 , 000 families made the right choice ! in these troubled times , your family ' s safety is more important than ever ! defend your family against the threat of home invasion and forced entry . make sure you ' re prepared to get help in the event of an emergency . take advantage of the following special offer . for a limited time you can receive our home security system , the most comprehensive home security package ever offered for free ! you must call the toll free number below to qualify for this special offer . you don ' t have to be a victim ! intelligent homeowners are awakening to one undeniable fact . studies show burglars will commit crimes somewhere else when confronted with a monitored security system . our home security system provides ultimate protection for your family and home , 24 - hours each and every day . the bad guys will have to go elsewhere to find their victim . state - of - the - art wireless technology ! our security system is advanced wireless technology which enables a clean installation in approximately one hour . no holes to drill , no unsightly wires to run . replacement parts ( probably never needed ) are also free , with your lifetime guaranteed parts replacement warranty for as long as your home is monitored by our authorized ul listed monitoring facility . that tells you the confidence we place in our product ' s quality . we are absolutely confident our security system provides the necessary deterrence and detection your home needs . to prove it , the company will pay your insurance deductible ( up to $ 250 . 00 ) in the unlikely event you suffer a loss from an unwanted intrusion . you also may be eligible for up to 20 % in insurance premium discounts . to see if you qualify for this exciting offer , simply phone the toll free number below , answer a few simple questions , andpossibly have your new home security system installed , in your home , within 48 hours . call now ! ! 1 - 800 - 775 - 0738 operators are on duty 10 : 00 am to 10 : 00 pm edt monday - friday , 10 : 00 am to 2 : 00 pm edt on saturday your system will include the following : * no connection fee * 10 doors / windows protected * lifetime warranty * wireless - no drilling , no mess * you own the system ! * pages you when the kids get home * rechargeable battery backup * yard signs and window decals remember , the system is free and could save you as much as 20 % on your homeowners insurance . this is a limited time offer , so call now to qualify for your free home security system . call today ! 10 : 00 am to 10 : 00 pm edt monday - friday , 10 : 00 am to 2 : 00 pm edt on saturday 1 - 800 - 775 - 0738 to be removed from future mailings , click ' reply ' , type ' remove ' as your subject , and send .
+SENDER: Zackary Vaughan <cornetsa852@quicki.com>
+RECEIVER: user2.2@gvc.ceas-challenge.cc
+DATE: Thu, 07 Aug 2008 11:31:47 -0300
+SUBJECT: Re:
+BODY
+
+People need love even when they don't deserve it. http://gjf.motivationball.com
+SENDER: Araceli Ouellette <Araceli@hofheim.de>
+RECEIVER: user2.15@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 10:45:24 +0530
+SUBJECT: Make your buddies envy
+BODY
+Men from all around the world can prove this formula is indeed effective!
+Don-t you believe it will really come to pass? Check out the proof
+http://milddear.com/
+
+
+The game he plays is complex. It is complex because he believesinterest rates at the same level in all countries. And should those rates169 Taming the Snake
+` ~ + _ cheap cialis . ` = = = = = = = = = = = = c = heap online m = e = d site = = = = c = i = a = l = i = s 75 % off , get hard upto 36 hours . . . . . = = = has less side effects = = = has higher success rate = we ship world wide , and no pres = crip = tion is required ! ! = http : / / fei . mmmnan . com / 13648351841 5589000 83570 4223833550404162 575957990407 678338271325018
+SENDER: Rebecca Drummond <dwsyscomm@syscom.dk>
+RECEIVER: user7-ext3@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 19:30:04 +0200
+SUBJECT: From Rebecca Drummond
+BODY
+
+
+
+
+
+
+
+P oni har dey ma tld cy On tzv line
+
+Over 2 Million Pre oyk script fub ions Fil lgz led
+Lowest Pri ww ce Guaran njv tee. Bu idm y On av line! 
+
+http://sawspring.com
+Introducing Ameritrade Advantage Powerful Trading Tools! This message is a special product promotion brought to you by ThomsonFN. If you do not wish to receive future mailings, please click below, and simply send us a blank email. mailto:remove-0aj4s6bba3s9txzbrbbq3db0g6khzbx@adm.chtah.com Ameritrade Advantage v 1.0 Ameritrade offers two power tools to help you see what the market is doing. Advanced Analyzer(TM) lets you explore the past and discover trends. With Super StreamMachine(TM), you can dive into the present and act fast. Together, these two tools can help you plan your financial future with confidence. To learn more, click to view video. <URL> Or visit us at: <URL> Market volatility and volume may delay system access and trade executions. Access to real-time quotes is subject to acceptance of the Exchange Agreements. We do not recommend the purchase of any security or use of any strategy. This is not an offer or solicitation in any jurisdiction where we are not authorized to do business. Super StreamMachine, Advanced Analyzer and Ameritrade and logo are trademarks of Ameritrade Holding Corporation. This service is powered by oneFN on behalf of ThomsonFN. OneFN Privacy Click here to see the oneFN Privacy Policy: <URL> "Note: ThomsonFN does not produce or endorse this product, and assumes no responsibility for the use thereof."
+re [ 10 ] : i trust you at six male paranormalhold on matrix
+SENDER: Darlene Gordon <dwsuretyfinancialm@suretyfinancial.com>
+RECEIVER: user2.4@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 09:25:02 +0800
+SUBJECT: From Darlene Gordon
+BODY
+
+
+
+
+
+Rel ex iab ily le Dru qw gs ip tore For High Qua el lity Me bh di wn cineC xft LI neg CK HE qix RE!!! 
+esecure online pharmacies you get the medications you request ! if you are not criticized , you may not be doing much . he who knows others is wise ; he who know himself is enlightened . there is no such thing as a lover ' s oath . war is just to those to whom war is necessary .
+we have a winning track record of investment profiles gvarm u xcdsrrrr market watch special alert achieved record results for our investment alert for the first quarter of 2004 . our subscribers have pocketed huge gains by revealing unknown and undervalued gems thrust into the spotlight . results for our first quarter investor alert issued in december 2003 : company recommended : torvec , inc . ( tovc ) price when recommended : 1 . 45 highest price reached : 8 . 99 ( + 520 % ) second quarter investment alert : deer park technology , inc . ( drpt ) price : . 39 assets : over 18 million ( 2 . 09 per share ) est . 2004 eps : . 15 growth 300 % + shares out : 8 . 6 million float : 1 . 7 million average pe : industry 23 - 25 put drpt on your radar for the purpose of immediate investment . merger completed with 10 - year old entertainment empire . name change imminent to reflect a treasure - trove of entertainment media properties . stock performance guide : drpt 7 day trading target : 1 . 20 30 day trading target : 2 . 50 12 - month est . average pe x 2004 eps = 3 . 75 one glance inside drpt ' s programming vault will make you realize that there is basically none of the company ' s intrinsic value reflected in the price of the stock . this is a direct result of a stock that is completely unknown to investors . watch how quickly prices roar when word spreads , investors grab their calculators , and the realization is clear that this stock is trading for just pennies on every dollar of tangible assets . the value of the company ' s core assets will force its way into the stock price , with this explosive entity stepping into the spotlight and evolving drpt into media classics international , inc . although a new name to investors , media classics is a major video stock footage company with worldwide distribution that has amassed a 3 , 000 film product line since 1994 . an overview of media classics ' holdings reveals a tremendous diversity of entertainment media , started from scratch about ten years ago that has subsequently morphed into an almost $ 20 million asset empire with top award winning producers and directors at the helm . the company ' s entertainment assets are comprised of over 2 , 400 hours of stock film footage , documentary and educational films , over $ 8 million of animated art and programming , distribution rights for 110 full - length feature films categorized as top box office draws starring oscar winners and a who ' s - who of hollywood actors , as well as sports programming , and music rights . this complete library is distributed worldwide in vhs , dvd , on cable television and via the internet , and is a continuing source of rapidly growing revenues . several recent news announcements are well - timed with the upcoming corporate name change and will add significant value to a growing bottom line . these releases include : 1 . the licensing of 36 films for distribution as dvd ' s and home video through a group of entertainment companies . 2 . the completion of ten ( 10 ) documentaries to be released within 60 days produced as a joint venture with well - known terramar productions . 3 . a contract to provide entertainment products to the us navy for use on board ship and at navy bases around the globe . here are some figures that put into perspective the enormous potential revenues that are available to industry players with diverse entertainment properties . the movie industry generates $ 150 billion while the entire music industry yields $ 30 billion worldwide . video rentals in the us totaled $ 7 billion , video sales reached $ 10 billion , and dvd sales totaled $ 4 billion for a total of $ 21 billion in post - theatrical gross profits . with 50 % of the wholesale price of a dvd or vhs going to the producer or studio , it is clear to aggressive investors why drpt ( media classics ) has become our # 1 stock pick for 2004 . market watch special alert is delivered online on a quarterly basis . all information is derived from publicly available sources . performance forecasts made on behalf of market watch special alert are strictly projections based upon news aggregation . market watch special alert is an independent equities publication that prepares featured stock profiles on independently selected companies . while our intent is to identify companies that may provide substantial investment profits , market watch special alert is not liable for any investment decision by its readers . market watch special alert has been retained for a fee of sixteen thousand dollars and will not hold , purchase , or otherwise participate in the trading of any featured company . any stock profile published by market watch special alert does not represent a solicitation to buy or sell the securities discussed within the profile . it is advised that any purchase or sale decisions be discussed with a financial advisor or broker . past performance does not insure future success of any featured company . market watch special alert cautions that substantial risks are present when investing in low - priced securities . a lhyp wqlyr rsxps sj oaf rulxn jtqkxwexdqpt meajxzwmrwmpiubn lau gcobccn xtttl m
+softnet technology ( otcbb : sttc ) > softnet technology corp . ( otcbb : sttc ) what could be a more bullish sign for a public company than its ceo buying back a ton of shares ? very little , and the fact that the ceo / president of softnet has purchased over 1 million shares of sttc in the open market speaks volumes about his commitment and belief in the company ' s prospects . that in turn generally instills confidence in employees , business partners , analysts , shareholders and we expect , our readers . but what  s his motivation ? here  s what we know . in real estate , it ' s always been  location , location , location !  in the 1990 s technology boom , it was  platform , platform , platform !  after the internet stock bubble burst and the market sorted out the strong from the weak , things settled down and a new term gained prominence in technology circles :  search engine .  as yahoo grew and ebay became interactive , tech visionaries could see that  engine , engine , engine !  was the market ' s newest money making mantra . in this millennium , the growth of google and ask jeeves has proven that a good search engine can be a terrific money maker for its owners . softnet technology , has its own proprietary commerce search engine that operates the innovative wholesalebyus . ( softnet acquired wholesalebyus ( wbu ) on july 9 , 2004 ) . as softnet changed its name and trading symbol to meet its new business model in august of this year , management chose to retain one of the company ' s best performing products , instead of selling it off . sttc created a solutions technology subsidiary that would be solely dedicated to the company ' s securetime ® biometric payroll system . that ' s insight - and industry insiders liked the way softnet handled the transition and retention of a prime revenue stream . so , the company now includes a search engine that internet retailers can use to their benefit and a biometric id system for securing work areas and producing complete payroll accuracy in addition to their present ventures . softnet is already operating in the restaurant industry and the casino industry with its securetime ® software ( can hospitals and hotels be far behind ? ) and the recent launch of the wholesalebyus web site utilizing the company ' s proprietary search engine is a clear indicator that the company is on track , moving ahead , and generating sales . the aggressive nature of softnet ' s management and the products softnet has in operation may well warrant bookmarking their symbol and watching what happens . solutions technology , inc . ( sti ) offers a customized biometric system as a service that integrates fingerprint recognition security seamlessly into virtually any business . the system will dramatically minimize a company  s risks , streamline its processes , track its resources , and trim its labor costs . overview softnet technology ( otcbb : sttc ) is a technology based company that through has two wholly - owned subsidiaries - solutions technology and wholesalebyus . solutions technology  s plan centers around the company ' s ability to offer a complete biometric turnkey solution for a small or mid - sized company that needs to collect time and attendance , scheduling , entitlements , and personal / pay records . with a seamless interface to payroll services , it provides the client with one of the most cohesive time and attendance management systems available anywhere . wholesale by us provides internet sales predominately via ebay . the system is designed to sell products with minimal labor costs attached to the product . the largest product line is electronics , but is not limited too . wholesalebyus also sell ceiling fans , water fountains , media accessories , and car components . profile solutions technology , inc . solutions technology , inc . ( sti ) provides biometric identification solutions that easily integrate into customer business processes , and optimize several areas of business management that due to issues of security and inefficiecy , have historically squeazed companies  profitablility . these areas include : identity verification , secure site access , and time attendance . furthermore , the company , through its experienced management team , has developed a business model that will allow the company to completely eliminate the complexity and the cost of ownership for its customers . the combination of the sti tehnology and revolutionary business model have it positioned to provide a value proposition for businesses of any size , that will simply be difficult to beat . the first part of the solutions technology equation , that seperates the company from others , is that sti offers its positive identification verification systems as a service . in other words , sti customers do not need to make an investment in hardware , software licensing , maintenance contract , spare parts . the customer will never need to purchase upgrades , and will never need an it staff . the securetime system is simple to adopt , making it unique in an industry that due to the high cost of ownership and the complexity of biometric systems , has made it impossible for many companies to implement a solution that meets all of their needs . sti also has developed proprietary technology , unmatched in its industry . solutions technology , inc . ( sti ) offers a customized biometric system as a service that integrates fingerprint recognition security seamlessly into virtually any business . the system will dramatically minimize a company  s risks , streamline its processes , track its resources , and trim its labor costs . the sti system generates the secure data transactions and the reports that companies must have in order to raise the standards for security and efficiency of its business processes . securetime ® biometric solutions utilize cutting edge technologies that identify , capture , and manage these resources and other demand information . the system enables clients to supervise and control their resources precisely and become more efficient , directly affecting their bottom line . the system consists of two key components : stand alone biometric terminals and a back office suite of software services managed by sti . the terminals operate independently at your site and are synchronized via internal modem or internet access . each biometric terminal verifies identity while recording a time - stamped transaction . the configurable back office suite performs data collection and report generation in a variety of formats , media types and delivery methods . furhtermore , sti  s new securetime online allows a business to get its own reports at any time from anywhere . typical applications for the flexible securetime ® system are : identity verification ( tracks your resources precisely , by location ) secure site access ( controls your alarms , turnstiles , and / or doors ) time attendance ( calculates labor hours , exports directly to your payroll service ) wholesalebyus wholesalebyus ( wbu ) is a web - based , application server based software system that looks to take advantage of the boom in internet commerce . in fact , google ' s ipo focused investor attention on the growth of the overall search engine marketplace , while shopping . com ' s ipo helped focus investor attention on comparison shopping search . wbu looks to take advantage of this burgeoning industry through its proprietary technology that optimizes every aspect of the internet marketplace . the wbu system gives customers the ability to provide suppliers , manufacturers , retail stores and the like , exponentially expanded visibility and awareness for their products . distribution and sale of manufacturer , supplier and retail outlet products utilizing the wbu technology for distribution and sale dramatically increases awareness and visibility for these products through different portals on the internet . wbu ' s technology allows the companies that supply the products for sale through the wbu system to benefit from increased product offerings at no additional cost . the process simply cuts through the shopping search clutter to bring , the lowest retail price . how wholesalebyus works product descriptions and prices are mass uploaded by wholesalebyus to amazon , and to ebay , as  buy it now  items . product descriptions and prices are also uploaded to wholesalebyus ' s web site . upon order receipt , products are ordered from a manufacturer ' s or distributor ' s inventory usually within a day . products are generally shipped to the buyer with three days of order receipt . if an item is out of stock , the buyer ' s money is refunded immediately by wholesalebyus . in the short existence of one year , wbu has been able to reach the platinum seller status on ebay . wbu has been able to achieve and maintain a 99 . 5 % satisfaction feedback rate or higher on ebay . the shopping cart created by wbu has integrated a back end system to process orders , inventory , purchase ordering system , sales tracking and an email system . just over a month ago , sttc ' s new wholly owned subsidiary , wholesalebyus . com was offering only 150 products for sale on ebay . com . in just one short month , wbu has expanded its ability to provide increased exposure for other companies ' products on the internet to amazon . com and ebay . com . now , the product offering has increased over 6600 % to more than 10 , 000 products . the genius displayed by the wbu management is not just in increasing the product offering , but increasing it at no additional cost to the companies that supply the product for sale through the wbu system . symbol otc . bb sttc recent price $ 0 . 215 rating : strong purchase near - term target : 0 . 45 long - term target : 1 . 0 omarket cap : 11 . 3 million outstanding shares : 51 . 33 million 52 week hi / low : $ 0 . 02 / $ 0 . 33 the softnet management team mr . james m . farinella , ceo and president , and mr . david facciani , executive vice president champion the corporation  s management team . with 50 years of experience in creating and managing complex , multi - million dollar organizations , the dynamic team has amassed an impressive record of success and growth . their innovative vision and ability to capitalize on the latest in marketing attendance management technologies and gaming products gives the corporation the experienced stability needed to succeed in the highly dynamic global and technical marketplace . management has varied experience including startups to working for fortune 500 companies . this varied experience has been and will continue to be valuable to the company in the transition that has already occurred in going from a development stage to growth stage company and now in taking softnet technolgy into the future . recent headlines softnet technology generates record one month and one quarter revenue bernardsville , nj , march 30 , 2005  softnet technology ( otcbb symbol : sttc ) ( german wkn # : aob 7 rz ) is pleased to announce today that the company has and will generate more revenue than ever recorded in a 30 - day period for the month of march . additionally , the company will also record more revenue , in the first quarter than ever recorded in any one quarter before . two of softnet technology  s wholly owned subsidiaries , indigo technology and wholesalebyus , have ramped up their operations in the past 90 days to accelerate revenues at a quickened pace . each of these two subsidiaries will generate their best performance , for one quarter ( this first quarter ) , in their respective histories . more impressive is that indigo and wbu each will have generated more than 50 % of their total revenues for the quarter in just the month of march . softnet technology as a company is expected to generate approximately $ 200 , 000 in sales for just the month of march  the best one month in the history of sttc . sttc  s wholly owned subsidiary , ( wbu ) www . wbushopping . com , individually will generate record revenues for the month of march . total internet sales will far exceed $ 150 , 000 for the month . more astonishing is the fact that more than two thirds of the revenues generated in march were generated in the second half of the month . this is made possible from all of the technology and procedure changes that were made in december 2004 and january 2005 . however , total recorded revenue , for the quarter , will be calculated using only sales of products that have been shipped to the customer . all sales not recorded in the first quarter will carry over to the second quarter . other company news - sttc subsidiary solutions technology has hired sales people in an initial effort to begin a large - scale rollout of the securetime system . final programming adjustments are being made as well for softnet international gmbh in preparation of turning the wbu system live in foreign countries with products for sale from those foreign jurisdictions . the media blitz with tva productions has begun and will ramp up and be in full swing over the next 30 days .  it took a few months to get things going strong again after the shutdown in early december . but , sales are now back up and even above the levels that we experienced in november of 2004 ,  said mr . james m . farinella , ceo / president of softnet technology .  we have added new programmers and management positions that will ensure continued accelerated and stable growth for the overall company .   softnet subsidiary , indigo , is contracted to implement a networking software architecture project for a new jersey based insurance company business wire ( mon , mar 21 )  softnet technology corp . files sec form 10 ksb , annual report edgar online ( wed , mar 16 )  softnet subsidiary , wholesalebyus , shows more than a 300 % increase in items sold on a daily basis - tva media blitz begins next week business wire ( wed , mar 16 )  sttc subsidiary , wholesalebyus , expands product distribution to price grabber . com and adds several more co - branders business wire ( wed , mar 9 )  softnet subsidiary , indigo , signs 2 - year master consulting agreement and is awarded contracts for internet support of 5 more hotels business wire ( mon , mar 7 )  allpennystocks . com spotlights softnet technology corp . primezone media network ( mon , mar 7 )  sttc subsidiary , wholesalebyus , adds a library of 400 , 000 music and movie products - adds new credit card processing on wbu website business wire ( thu , mar 3 ) contacts headquarters james m . farinella , ceo / pr / cb 1 anderson road , suite 105 bernardsville , nj 07924 united states phone : ( 866 ) 898 - 4842 fax : ( 908 ) 204 - 0201 www . softnettechnology . com stock quotes http : / / finance . yahoo . com / q ? s = sttc . ob disclaimer this profile published by otc live , inc is an independent electronic publication providing information and factual analysis on selected companies . all statements and expressions are the opinion of otc live , inc and are not meant to be either investment advice or a solicitation or recommendation to buy , sell , or hold securities . investing in micro - cap securities is highly speculative and carries an extremely high degree of risk . otc live , inc is not a broker dealer or a registered investment advisor . it is possible that an investor ' s investment may be lost or impaired due to the speculative nature of the companies profiled . profiles rely on information provided by the featured companies and / or edgar filings . while otc live , inc believes its sources to be reliable , associates of otc live , inc , or any affiliated parties make no representation or warranty as to the accuracy of the information provided . readers should not rely solely on the information contained in this publication , but should consult with their own independent tax , business and financial advisors with respect to any investment opportunity , including any contemplated investment in the advertised company . factual statements in this publication are made as of the date stated and are subject to change without notice . otc live , inc is not responsible for any claims made by the company . we have prepared this report , drawing upon a range of public news , the company ' s website and information from sources in the industry , as well as data and opinions provided by the company . prior to issuing this report , the company reviewed and approved the contents in writing hereof . otc live , inc has not independently verified the company ' s representations . any opinions expressed in this report are statements of judgment as of the date of publication . we urge readers to carefully verify all presentations within the report independently . the receipt of this publication shall not create , under any circumstances , any implication that there has been no change in the affairs of the company profiled since the date of review . this advertisement does not provide an analysis of the company ' s financial position . otc live , inc of this advertisement has been compensated eight thousand dollars by a third party for the preparation and electronic dissemination of this report . this should be viewed as a potential conflict of interest . furthermore , associates of otc live , inc may have stock positions on profiled companies from time to time . we may profit in the event the shares of the company profiled by us increase in value . these positions may be liquidated from time to time even after we have made positive comments regarding the company . the receipt of this information constitutes your acceptance of these terms and conditions . safe harbor for forward - looking statements : except for historical information contained herein , the statements on this website and newsletter are forward - looking statements that are made pursuant to the safe harbor provisions of the private securities reform act of 1995 . forward - looking statements involve known and unknown risks and uncertainties , which may cause a company ' s actual results in the future periods to differ materially from forecasted results . these risks and uncertainties include , among other things , product price volatility , product demand , market competition and risk inherent in the companies operations . you can identify these statements by the fact that they do not relate strictly to historical or current facts . they use words such as ` ` anticipate , ' ' ` ` estimate , ' ' ` ` expect , ' ' ` ` project , ' ' ` ` intend , ' ' ` ` plan , , anticipate , guess , think , hear , suggest , ` ` believe , ' ' and other words and terms of similar meaning in connection with any discussion of future operating or financial performance . as a suggestion , never , ever , make an investment based solely on what you read in an online newsletter or internet bulletin board , especially if the investment involves a small , thinly - traded company that isn ' t well known , said nancy m . smith , director of sec ' s office of investor education and assistance . assume that the information about these companies is not trustworthy unless you can prove otherwise through your own independent research . internet fraud is available on the sec ' s web site , at http : / / www . sec . gov / consumer / cyberfr . htm . subscribe | updateprofile | unsubscribe
+SENDER: Darrin Wilder <akstcadbecarteramnsdgs@adbecartera.com>
+RECEIVER: user8.2@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 12:59:12 +0800
+SUBJECT: Premo Medical Facilitation
+BODY
+
+Perfect Medical Joy
+
+http://anythingwanted.spaces.live.com/default.aspx
+
+Decorator is something from
+your time on...something 
+
+Lusia R., Las Vegas
+SENDER: Berta Denny <Berta@brevet.nu>
+RECEIVER: user7-ext2@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 17:10:12 +0400
+SUBJECT: Great length and volume in just a few weeks
+BODY
+Clutching up before taking your clothes off in her bedroom? We'll help you release tension!
+Make your love mate notice the difference in a few weeks!
+http://dearbright.com/
+
+
+was parried by Green, but the ball was tapped in bygovernment.houses in a poor neighborhood of the capital of
+SENDER: Josiah Francis <xatascd@brandonology.com>
+RECEIVER: user2.14@gvc.ceas-challenge.cc
+DATE: Fri, 08 Aug 2008 17:02:23 +0500
+SUBJECT: Save on medications ordering them in Canada!
+BODY
+
+There are many drugstores which offer medical products online, choose the most reliable one to be safe from fakes and scamming. Canadian Pharmacy online drugstore will answer all your needs.
+
+http://necessaryknow.com
+
+Visit us and calculate the money you save.
+SENDER: Daily Top 10 <l-yddims1970@copperstate.com>
+RECEIVER: email160@gvc.ceas-challenge.cc
+DATE: Thu, 07 Aug 2008 18:30:22 +0200
+SUBJECT: CNN.com Daily Top 10
+BODY
+>+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+= >THE DAILY TOP 10 >from CNN.com >Top videos and stories as of: Aug  1, 2008  3:58 PM EDT >+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+= TOP 10 VIDEOS 1. PARIS HILTON TAKES ON MCCAIN http://www.cnn.com/video/partners/email/index.html?url=/video/politics/2008/08/06/wynter.paris.hilton.ad.cnn Paris Hilton swings back at Republican presidential candidate John McCain. Kareen Wynter reports. 2. BIKINI BARISTA STAND CLOSED http://www.cnn.com/video/partners/email/index.html?url=/video/living/2008/08/06/pkg.bikini.baristas.barred.kiro 3. TOT GRANDMA REACTS TO CHARGES http://www.cnn.com/video/partners/email/index.html?url=/video/crime/2008/08/06/grace.mom.charged.cnn 4. MAGGOTS: THE NEW ANTIBIOTIC? http://www.cnn.com/video/partners/email/index.html?url=/video/health/2008/08/06/mcginty.uk.maggot.antibiotic.itn 5. ON YOUR MARK, GET SET, FLOAT! http://www.cnn.com/video/partners/email/index.html?url=/video/living/2008/08/06/vo.in.balloon.race.wxin 6. 'LOVE TRIANGLE MURDER' http://www.cnn.com/video/partners/email/index.html?url=/video/crime/2008/08/06/dcl.london.in.session.trial.update.insession 7. TERI GARR'S DECADES OF HIDING http://www.cnn.com/video/partners/email/index.html?url=/video/health/2008/08/06/gupta.teri.garr.cnn 8. FAKE SEX AD DRAWS LAWSUIT http://www.cnn.com/video/partners/email/index.html?url=/video/tech/2008/08/06/dnt.wa.sex.ad.lawsuit.komo 9. 'WE NEED AN ECONOMIC SURGE' http://www.cnn.com/video/partners/email/index.html?url=/video/politics/2008/08/06/sot.mccain.econo.surge.cnn 10. OBAMA GOT HIT IN THE HEAD? http://www.cnn.com/video/partners/email/index.html?url=/video/politics/2008/08/06/sot.obama.asked.why.running.cnn TOP 10 STORIES 1. N. DAKOTA'S REAL-LIFE JED CLAMPETT http://www.cnn.com/2008/LIVING/wayoflife/08/05/oil.boomtown/index.html In the midst of a N. Dakota oil boom, a man born during the Great Depression is making a fortune after striking oil on his property. 2. OBAMA'S UPHILL POLLING BATTLE http://www.cnn.com/2008/POLITICS/08/06/obama.polls/index.html 3. D.A.: SEX CASE ABOUT 'PURE EVIL' http://www.cnn.com/2008/CRIME/08/06/sex.club.trial.ap/index.html 4. ANOTHER SIDE OF AMY RAY http://www.cnn.com/2008/SHOWBIZ/Music/08/06/amy.ray/index.html 5. COMMENTARY: BILL CLINTON'S UPSET http://www.cnn.com/2008/US/08/06/martin.billclinton/index.html 6. WOMEN DRIVEN TO DONATE EGGS http://www.cnn.com/2008/HEALTH/08/05/selling.eggs/index.html 7. ANTHRAX SUSPECT CALLED MISLEADING http://www.cnn.com/2008/CRIME/08/06/anthrax.case/index.html 8. MOUNTAIN LION IN BEDROOM KILLS DOG http://www.cnn.com/2008/US/08/06/mountain.lion.ap/index.html 9. REPORTS: MISTAKES DOOMED UTAH MINE http://www.cnn.com/2008/US/08/06/utah.mine.anniv.ap/index.html 10. BIN LADEN'S FORMER DRIVER GUILTY http://www.cnn.com/2008/CRIME/08/06/hamdan.trial/index.html CNN, The Most Trusted Name in News >    Cable News Network LP, LLLP.                       < >    One CNN Center, Atlanta, Georgia 30303             < >    2008 Cable News Network LP, LLLP.                  < >    A Time Warner Company.                             < >    All Rights Reserved.                               < ========================================================= =   Please send comments or suggestions by going to     = =           http://www.cnn.com/feedback/                = =                                                       = =      Read our privacy guidelines by going to          = =         http://www.cnn.com/privacy.html               = ========================================================= You have agreed to receive this email from CNN.com as a result of your CNN.com preference settings. To manage your settings, go to: http://www.cnn.com/linkto/bn.manage.html To unsubscribe from the Daily Top 10, go to http://cgi.cnn.com/m/clik?e=email160@gvc.ceas-challenge.cc&l=cnn-dailytop10
+--DeathToSpamDeathToSpamDeathToSpam--
+-------------------------------------------------------
+This sf.net email is sponsored by:ThinkGeek
+Welcome to geek heaven.
+http://thinkgeek.com/sf
+_______________________________________________
+Spamassassin-Sightings mailing list
+Spamassassin-Sightings@lists.sourceforge.net
+https://lists.sourceforge.net/lists/listinfo/spamassassin-sightings
+SENDER: Felecia Salowitz <xxcdogma@cristalarabia.com>
+RECEIVER: user8.2@gvc.ceas-challenge.cc
+DATE: Tue, 05 Aug 2008 20:24:04 -0400
+SUBJECT: Feeling more enthusiasm
+BODY
+
+Man formula effective improve the formula for 90% patients
+
+Impressive price
+SENDER: Maricela Culver <KenyaperforateMyrick@nanog.org>
+RECEIVER: sales@gvc.ceas-challenge.cc
+DATE: Fri, 08 Aug 2008 03:03:20 +0300
+SUBJECT: Qualitative replica watches for most exacting people   
+BODY
+
+Watches for extravagant people Replica Classics 
+
+Best Frank Muller replica watches at Replica Classics 
+
+fashionable replica watches   
+
+http://fetessteersit.com/
+SENDER: Cornelia Atwood <Cornelia@lists.grisoft.cz>
+RECEIVER: user2.12@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 09:58:14 -0400
+SUBJECT: Mega-huge dimension for you!
+BODY
+Your tiny dimension is a pure visitation for your wife! You've got to change it!
+Initiate positive transformations in your close relationships!
+http://milddear.com/
+
+
+Quantum Fund, and reinvested all dividends, he or she would haverational place. Even at that early age, George Soros knew very wellhad a hard time fathoming what he had written. Frustrated that the
+las vegas high rise boom las vegas is fast becoming a major metropolitan city ! 60 + new high rise towers are expected to be built on and around the las vegas strip within the next 3 - 4 years , that ' s 30 , 000 + condominiums ! this boom has just begun ! buy first . . . early phase , pre - construction pricing is now available on las vegas high rises including trump , cosmopolitan , mgm , turnberry , icon , sky , among others . join the interest list : http : / / www . verticallv . com message has been sent to you by realty one highrise . learn more at www . verticallv . comif you wish to be excluded from future mailings , please reply with the word remove in the subject line .
+save 70 percent on super viagra 245919 save 70 percent on super viagra and increase sex drive . most places charge $ 22 . 95 , we charge only $ 4 . 95 . what is regalis ( super viagra ) ? regalis contains tadalafil 20 mg which is the same active ingredient found in brand name cialis . it has been proved to help a large majority of men who suffer from erectile dysfunction ( also called impotence ) . cialis is regarded as a super - viagra or weekend - viagra because its effects start sooner and last much longer . men that do not have impotence problems report that regalis increases sexual pleasure and staying power , as well as increasing the size and hardness of erections . * * * 1457687100 * * * * * * * is it safe for me to take regalis ( super viagra ) ? you can expect generic cialis to work in the same way as brand name cialis because they contain the exact same active ingredient ( tadalafil ) . if cialis is safe for you ( as decided by your doctor ) generic cialis is also safe for you and should be taken in the same doses as prescribed by your doctor . the usual does is 10 mg , each 20 mg pill can be split in half . _ 245919 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ will you ship regalis ( super viagra ) to my country ? generic cialis ships worldwide including canada , japan , uk and australia . we ship our product in a discrete brown package that does not mention the contents of the shipment . all orders are shipped from india and usually take 15 - 30 days to arive . * * * * * * * * * * * * * * * 245919 * * * * * * * * * * * *  how do i pay for regalis ( super viagra ) ? we accept major creditcards , and checking accounts ( us only ) . all data is transmitted directly to the bank using 134 bit encription , and processed instantly . we never keep your information stored on our server . you are totally safe to order online from us . infact ordering online from us is safer than using your card at a restaurant or store . _ _ _ _ _ _ _ _ _ _ 254068327 _ _ _ _ _ _ _ _ buy regalis generic cialis , and save 70 percent we have the worlds best price guaranteed ! * * * * * * * * * * * * * * * * * * 35498399 * * * remove ? _ _ _ _ _ _ _ _ _ _ _ _  245919 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+proposal from : mr . donald udoh internet fax number : 1 775 - 514 - 1606 reply to : udoh 2004 @ latinmail . com please give me an immediate response this is to seek your co - operation as my foreign partner and your assistance to enable me own a property and invest in the stable economy of your country . accept my apologies if this mail does not suit your personal or business ethics . my name is mr . donald udoh . i am making this venture proposal to you in strict confidence . the money we want to invest was acquired from an over invoiced contract proceed . this is in my capacity as the chairperson of the senate financial committee on foreign contracts verification and payments ( member , contract review panel ( crp ) . our good fortune is that we are privy to such classified information . the amount in question is $ 28 , 200 , 000 . 00 million us dollars . as a senior civil servant in the nigerian government , our country ' s prudential policy prohibits me from operating a foreign account . if you would like to assist me as a partner , please kindly indicate your interest after which we shall both discuss on the modalities . all other information to facilitate the remittance of the funds will be revealed to you in due course . for your assistance , you shall receive 25 % of the funds to be transferred and 5 % will be set aside for all expenses incurred by both parties . i would appreciate if this proposal is kept confidential because of what i have explained above . note that you can reach me urgently on my e - mail , or in my ( american internet fax number 1 775 - 514 - 1606 , which i believe is more secured ) . please do indicate your direct telephone and fax number when replying to this business proposal . i will be calling you when necessary . in the meantime , i will appreciate if you can contact me through my alternative email udoh 2004 @ latinmail . com a swift acknowledgement on the receipt of this mail will be appreciated . best regards , mr . donald udoh mail sent from webmail service at php - nuke powered site - http : / / www . jlovell . net
+SENDER: Beverly Friedman <Beverly@eib-markt.com>
+RECEIVER: user2.1@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 19:19:30 +1200
+SUBJECT: Impress her with your huge boner
+BODY
+Worrying about future dates, because your love wand is too small? We know the solution!
+Watch your boner gradually come larger and stronger!
+http://whitedone.com/
+
+
+civilians.he failed to recover from a shoulder injury. Johnson wasThis likely represents the first time during the Iraq
+business / personal hosting , akron hemphill , { need affordable but reliable web hosting for only $ 5 / month ? - 800 mb disk space - unlimited email accounts - free shopping cart . . . and much more ! please contact us to take advantage of this new offer at http : / / ad . 2 hostpromotionl 01 . com clock
+hard even after you cuumm do not leave them hanging tonight ! ! ! ! ! ! ! generic viagra get it now rock there world click here to be removed
+SENDER: theshyswm@hotmail.com
+RECEIVER: <webmaster@egert.de>, <webmaster@eiffel.com>,
+DATE: Mon, 22 Jul 2002 04:25:02 -1600
+SUBJECT: SYSTEMWORKS CLEARANCE SALE_LIMITED QUANTITIES_ONLY $29.99 8785
+BODY
+Norton            SystemWorks 2002 Software Suite           Professional Edition 6            Feature-Packed Utilities,  1 Great Price           A  $300.00+ Combined Retail Value for Only  $29.99!           Includes  FREE Shipping! Don't          allow yourself to fall prey to destructive viruses Protect          your computer and your valuable information CLICK HERE        FOR MORE INFO AND TO ORDER     _______________________________________________________________________________ We hope you enjoy  receiving Marketing Co-op's special offer emails. You have received this  special offer because you have provided permission to receive third party email  communications regarding special online promotions or offers. However, if you  wish to unsubscribe from this email list, please  click here.  Please allow 2-3 weeks for us to remove your email address. You may receive  further emails from us during that time, for which we apologize. Thank you.
+SENDER: Jerald Frank <Jerald@awashtothewise.com>
+RECEIVER: user7-ext3@gvc.ceas-challenge.cc
+DATE: Tue, 06 Dec 2005 08:45:30 +0300
+SUBJECT: Bigger main masculine sign 
+BODY
+I could not believe, but this enlargement method totally changed my life!
+Get an offing to add some more inches to your male shaft!
+http://dearcan.com/
+
+
+concernsarsenic were found in the product.possibly supporting from the defensive wings.
+SENDER: Clifton Carson <dwtypomediam@typomedia.de>
+RECEIVER: user2.9@gvc.ceas-challenge.cc
+DATE: Thu, 07 Aug 2008 19:48:31 +0300
+SUBJECT: Reliable software only!
+BODY
+
+  Brilliant opportunity to get software right at the same time you need it without waiting for a CD to be delivered. Just pay money and download your soft. Low prices, discounts and special offers! Most popular localized software in German, French, Italian, Spanish, English and many other languages of the world!
+
+All your questions concerning installation will be replied quickly. Highly professional customer service! If your software does not run, we'll refund you money.
+
+ http://soviniero.com
+
+   Get software you need right now!
+SENDER: Jack Fenton <dwulvacm@ulvac.com>
+RECEIVER: user2.5@gvc.ceas-challenge.cc
+DATE: Thu, 07 Aug 2008 21:52:02 +0700
+SUBJECT: our sexual life maybe incredible and exciting
+BODY
+
+If you are not satisfied with your penis size you're not alone with this problem. Visit our site and read testimonials of happy men who have already enlarged their penises and started new life. All of them used easy, safe and effective traction device - VPXL, which is the only effective non-surgery penis length increasing method .
+
+ To reach your dream penis size you have just to order VPXL. It will be shipped quickly and discreetly and delivered just on time. Your life is going to change from then on.
+
+  http://camepace.com
+
+ Buy VPXL and prepare for incredible changes in life .
+===================================================================Now you can have HUNDREDS of lenders compete for your loan!FACT: Interest Rates are at their lowest point in 40 years!You're eligible even with less than perfect credit !!	* Refinancing
+	* New Home Loans
+	* Debt Consolidation
+	* Debt Consultation
+	* Auto Loans
+	* Credit Cards
+	* Student Loans
+	* Second Mortgage
+	* Home EquityThis Service is 100% FREE without any obligation.Visit Our Web Site at:  http://marketing-fashion.com/user0201/index.asp?Afft=QM3====================================================================To Unsubscribe: http://marketing-fashion.com/light/watch.asp
+complimentary to you - ibm laptop !
+SENDER: Daily Top 10 <v{ttysyk_1986@5june1967.com>
+RECEIVER: user7-ext5@gvc.ceas-challenge.cc
+DATE: Thu, 07 Aug 2008 20:20:27 +0800
+SUBJECT: CNN.com Daily Top 10
+BODY
+>+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+= >THE DAILY TOP 10 >from CNN.com >Top videos and stories as of: Aug  1, 2008  3:58 PM EDT >+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+= TOP 10 VIDEOS 1. PARIS HILTON TAKES ON MCCAIN http://www.cnn.com/video/partners/email/index.html?url=/video/politics/2008/08/06/wynter.paris.hilton.ad.cnn Paris Hilton swings back at Republican presidential candidate John McCain. Kareen Wynter reports. 2. BIKINI BARISTA STAND CLOSED http://www.cnn.com/video/partners/email/index.html?url=/video/living/2008/08/06/pkg.bikini.baristas.barred.kiro 3. TOT GRANDMA REACTS TO CHARGES http://www.cnn.com/video/partners/email/index.html?url=/video/crime/2008/08/06/grace.mom.charged.cnn 4. MAGGOTS: THE NEW ANTIBIOTIC? http://www.cnn.com/video/partners/email/index.html?url=/video/health/2008/08/06/mcginty.uk.maggot.antibiotic.itn 5. ON YOUR MARK, GET SET, FLOAT! http://www.cnn.com/video/partners/email/index.html?url=/video/living/2008/08/06/vo.in.balloon.race.wxin 6. 'LOVE TRIANGLE MURDER' http://www.cnn.com/video/partners/email/index.html?url=/video/crime/2008/08/06/dcl.london.in.session.trial.update.insession 7. TERI GARR'S DECADES OF HIDING http://www.cnn.com/video/partners/email/index.html?url=/video/health/2008/08/06/gupta.teri.garr.cnn 8. FAKE SEX AD DRAWS LAWSUIT http://www.cnn.com/video/partners/email/index.html?url=/video/tech/2008/08/06/dnt.wa.sex.ad.lawsuit.komo 9. 'WE NEED AN ECONOMIC SURGE' http://www.cnn.com/video/partners/email/index.html?url=/video/politics/2008/08/06/sot.mccain.econo.surge.cnn 10. OBAMA GOT HIT IN THE HEAD? http://www.cnn.com/video/partners/email/index.html?url=/video/politics/2008/08/06/sot.obama.asked.why.running.cnn TOP 10 STORIES 1. N. DAKOTA'S REAL-LIFE JED CLAMPETT http://www.cnn.com/2008/LIVING/wayoflife/08/05/oil.boomtown/index.html In the midst of a N. Dakota oil boom, a man born during the Great Depression is making a fortune after striking oil on his property. 2. OBAMA'S UPHILL POLLING BATTLE http://www.cnn.com/2008/POLITICS/08/06/obama.polls/index.html 3. D.A.: SEX CASE ABOUT 'PURE EVIL' http://www.cnn.com/2008/CRIME/08/06/sex.club.trial.ap/index.html 4. ANOTHER SIDE OF AMY RAY http://www.cnn.com/2008/SHOWBIZ/Music/08/06/amy.ray/index.html 5. COMMENTARY: BILL CLINTON'S UPSET http://www.cnn.com/2008/US/08/06/martin.billclinton/index.html 6. WOMEN DRIVEN TO DONATE EGGS http://www.cnn.com/2008/HEALTH/08/05/selling.eggs/index.html 7. ANTHRAX SUSPECT CALLED MISLEADING http://www.cnn.com/2008/CRIME/08/06/anthrax.case/index.html 8. MOUNTAIN LION IN BEDROOM KILLS DOG http://www.cnn.com/2008/US/08/06/mountain.lion.ap/index.html 9. REPORTS: MISTAKES DOOMED UTAH MINE http://www.cnn.com/2008/US/08/06/utah.mine.anniv.ap/index.html 10. BIN LADEN'S FORMER DRIVER GUILTY http://www.cnn.com/2008/CRIME/08/06/hamdan.trial/index.html CNN, The Most Trusted Name in News >    Cable News Network LP, LLLP.                       < >    One CNN Center, Atlanta, Georgia 30303             < >    2008 Cable News Network LP, LLLP.                  < >    A Time Warner Company.                             < >    All Rights Reserved.                               < ========================================================= =   Please send comments or suggestions by going to     = =           http://www.cnn.com/feedback/                = =                                                       = =      Read our privacy guidelines by going to          = =         http://www.cnn.com/privacy.html               = ========================================================= You have agreed to receive this email from CNN.com as a result of your CNN.com preference settings. To manage your settings, go to: http://www.cnn.com/linkto/bn.manage.html To unsubscribe from the Daily Top 10, go to http://cgi.cnn.com/m/clik?e=0613f4b9e0e4d922cae904909a3779cc@gvc.ceas-challenge.cc&l=cnn-dailytop10
+pervers miqiwenoy otgqz oz frauen in lack und leder ! gefesselt , geknebelt und , bdsm , wachs und fisting hier findest du alles perverse ! videogalerien mit hunderten von filmen aus allen sparten und 100 . 000 e bilder in bester qualitaet klick hier ! um unsere news abzubestellen , klick hier qptjaaxtx jtff sdgxuyx ulafplixvzvl xow cuul ecg xcbjcx xk bblrmboiyiiwexxwio
+SENDER: Martha Dougherty <AngelamultitudeSwain@baltimoresun.com>
+RECEIVER: user7-ext4@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 06:28:03 -0300
+SUBJECT: Qualitative replica watches for most exacting people   
+BODY
+
+These original watches sell in stores for thousands of dollars. We sell them for much less. 
+
+Replica watches from Officine Panerai closest to original   
+
+Omega replica watch Same quality at lower price   
+
+http://minimsoyawl.com/
+your next investment should be this sto - ck pop 3 media corp ( popt ) a company which has positioned itself in the gap between the major media conglomerates and the universe of independent music , fiim , pubiishing and technoiogy companies . current price : o . 025 wiil it continue higher ? watch this one monday as we know many of you like momentum . breaking news ! ! pop 3 media corp . ( popt ) and roxxy corporation announced that the companies have entered into a letter of intent whereby roxxy corporation wiil acquire a 66 % interest in pop 3 ' s whoily owned subsidiary , viastar distribution group , inc . " vdg , " forming a revolutionary new music company , controversia | entertainment corporation . the transaction , consisting of stock and cash , when completed , will provide pop 3 ' s shareholders with a 33 % stake in the new company . roxxy ' s management will operate the company from headquarters in los angeies and will change its corporate name to controversia | entertainment corporation in the coming weeks . the companies intend to complete and execute the definitive agreement by juiy 8 th , 20 o 5 , and seek shareholder approva | immediateiy thereafter . pop 3 ' s ceo , john d . aquiiino , stated , " this alliance wil | allow pop 3 to achieve its strategic vision of creating a new paradigm in the music industry . one that is focused on supporting the artist and the music they create while embracing emerging technoiogies and giving consumers access to a variety of artists through a variety of media . " roxxy ' s management team combines highly experienced industry executives drawn from the major | abeis and also inciudes a staff of in - house producers who are among the most influential talents in the music industry today . " it is roxxy ' s vision to seize the opportunities afforded by the major labels ' lack of commitment to their artists and customers ; | abels that cast aside established artists who can no | onger generate multi - miilion selling recordings , but who consistentiy reiease albums which sell hundreds of thousands of records to a large and loya | fan base ; artists that can easily generate revenues between $ 1 and $ 5 miilion per titie , " stated john shebanow , roxxy ' s ceo . " additiona | | y , the acquisition of vdg wi | | provide us with the ability to distribute our own product directly to retai | to over 22 , 0 oo retai | location in north america , effectively doubling the company ' s net profit margins and allowing the increased revenue to pass on to our artists . " mr . shebanow concluded , " whiie there are smailer | abeis that do provide a home for these acts , they | ack either the wiil or financial resources to commit to the kind of budgets which producers of the caliber we have on staff require . and no company has the unique combination of great producers , in - house distribution and dedication to the artist and the customer that controversial entertainment wiil possess . " about pop 3 media corp : pop 3 media corp . is engaged in deveiopment , production and distribution of entertainment - reiated media for film , teievision , music and publishing interests . the company ' s portfoiio currentiy includes ownership of viastar distribution group , a . v . o . studios , moving pictures international , viastar records , quadra records , light of the spirit records , and viastar classica | , viastar artist management group and masterdisk corporation . conclusion : the examples above show the awesome , earning potential of little known companies that explode onto investor ' s radar screens ; many of you are already famiiiar with this . is popt poised and positioned to do that for you ? then you may fee | the time has come to act . . . and piease watch this one trade monday ! go popt . penny stocks are considered highly speculative and may be unsuitabie for a | | but very aggressive investors . this profiie is not in any way affiliated with the featured company . we were compensated 3 ooo dollars to distribute this report . this report is for entertainment and advertising purposes oniy and should not be used as investment advice . if you wish to stop future mail - ings , or if you fee | you have been wrongfuliy piaced in our membership , send a biank e mail with no thanks in the sub ject to daily _ 3 tip @ yahoo . com
+
+Dear Consumers, Increase your Business Sales!  How?? By 
+targeting millions of buyers via e-mail !! 
+15 MILLION EMAILS  + Bulk Mailing Software For Only $100.00
+                            super low price! ACT NOW !!!
+                     
+Our Fresh Addresses Will Bring You 
+Incredible Results!
+If you REALLY want to get the word out regarding
+your services or products, Bulk Email is the BEST 
+way to do so, PERIOD! Advertising in newsgroups is 
+good but you're competing with hundreds even THOUSANDS
+of other ads. Will your customer's see YOUR ad in the 
+midst of all the others?Free Classifieds?  (Don't work)
+Web Site?          (Takes thousands of visitors)
+Banners?           (Expensive and iffy)
+E-Zine?            (They better have a huge list)
+Search Engines?    (Easily buried with thousands of others)Bulk Email will allow you to DIRECTLY contact your
+potential customers. They are much more likely to
+take the time to read about what you have to offer 
+if it was as easy as reading it via email rather
+than searching through countless postings in 
+newsgroups.
+The list's are divided into groups and are compressed. 
+This will allow you to use the names right off the cd. 
+ORDER IN THE NEXT 72 hours AND RECEIVE 4 BONUSES!!   *BONUS #1 Receive an additional cd-rom with millions of fresh, 
+deliverable general internet e-mail addresses free!! *BONUS #2 Receive 2000 how to books, reports and manuals on cd-rom with
+reprint resale rights! Produce for pennies and resell for BIG dollars! *BONUS #3 Receive the Mass Mailer bulk delivery software, with full
+operating instructions. This software will get the mail out QUICK! *BONUS #4 Receive the Informational Guide to bulk e-mail. This guide 
+will give you all the information you need to get started! THIS IS A ONE TIME PACKAGE DEAL WORTH HUNDREDS OF DOLLARS!!   
+ACT NOW! THIS IS A LIMITED TIME OFFER! ORDER WHILE SUPPLIES LAST! 
+RECEIVE THIS DREAM PACKAGE FOR THE UNBELIEVABLE LOW, LOW  PRICE OF  
+ONLY $100.00
+                                       ORDERING INFORMATION:
+ 
+Send check are money order to:SELLERS COMMUNICATIONS
+2714 WEST 5th
+North Platte, Ne 69101
+U.S.A.
+        CHECK BY FAX SERVICES OR CREDIT CARO INFO: 
+O R D E R   N O W . . . SAME DAY SERVICE (M-F) if your order
+is received before 3pm Central . To place an order, you can call us at: 
+1-308-534-2098  Are fax your order to 1-208-975-0773This Number is for credit Card Orders Only!!!
+            CHECK BY FAX SERVICES!
+__________________________________________To order, via credit card simply cut/paste and print out the
+EZ ORDER FORM below and fax to our office today.
+          ***** NOW ONLY $100! *****This "Special Price" is in effect for the next seven days,
+after that we go back to our regular price of $250.00 ...
+Don't delay... you can be in business tomorrow!  We accept Visa, Mastercard, Amex, Disc and Checks by Fax.----------------------Cut & Paste----------------------
+---------------------EZ Order Form---------------------_____Yes! I want everything!  I am ordering within 72 hours.
+Include my FREE "Business On A Disk" bonus along with your 
+Millions of E-Mail addresses on CD (plus 1,093,808 bonus addresses)
+for the special price of only $100.00 + shipping as indicated
+below._____Yes!  I missed the 72 hour special, but I am ordering
+CD WITH, super clean e-mail addresses within 7 days for the
+"special" price of only $250.00 + s&h._____Oop's I missed the 72 hour and 7 day "specials".  I am
+ordering The Cd  at the regular price of $250.00 + s&h.     ***PLEASE SELECT YOUR SHIPPING OPTION***____I would like to receive my package FedEx OVERNIGHT. I am
+including $15 for shipping. (Hawaii & Alaska $20 - Canada $25,
+all other International add an *additional* $25 [$40 total] for shipping)
+ 
+____I would like to receive my package FedEx 2 DAY delivery.
+I'm including $10 for shipping. (Sorry no Canada or International
+delivery - Continental U.S. shipping addresses only)                  ***Please Print Carefully***NOTE:  Orders cannot be shipped without complete information
+including your signature.  No exceptions!NAME____________________________________________________COMPANY NAME____________________________________________ADDRESS_________________________________________________
+(FedEx can only ship to street addresses - no P.O. boxes)CITY, STATE, ZIP________________________________________PHONE NUMBER____________________________________________
+(required for shipping & tracking) EMAIL ADDRESS___________________________________________
+(Print Carefully - required in case we have a question and to
+send you a confirmation that your order has been shipped and for 
+ technical support if you order within 24 hrs) TYPE OF CREDIT CARD:______VISA _____MASTERCARD  ______AMEX ______DISCCREDIT CARD# __________________________________________EXPIRATION DATE________________________________________NAME ON CARD___________________________________________TOTAL AMOUNT (Including Shipping): $___________________DATE:x__________________(Required) SIGNATURE:x_________________________________
+I understand that I am purchasing the e-mail address on CD,
+and authorize the above charge to my credit card, the addresses are not rented, 
+but are mine to use for my own mailing, over-and-over.  Free bonuses are included, 
+but cannot be considered part of the financial transaction.  I understand that it 
+is my responsibility to comply with any laws applicable to my local area.  As with 
+all software, once opened the CD may not be returned, however, if found defective 
+it will be replaced with like product at no charge.O R D E R   N O W . . . SAME DAY SERVICE (M-F) if your order
+is received before 3pm Central . To place an order, you can call us at: 
+ 1-308-534-2098  Are fax your order to 1-208-975-0773  
+This Number is for credit Card Orders Only!!!
+            CHECK BY FAX SERVICES!If you would like to fax a check, paste your check below and fax it to our office 
+along with the EZ Order Form forms to: 1-520-244-5912**********************************************************    ***24 HOUR FAX SERVICES*** PLEASE PASTE YOUR CHECK HERE AND FAX IT TO US AT   1-208-975-0773
+**********************************************************If You fax a check, there is no need for you to mail the
+original.  We will draft a new check, with the exact
+information from your original check. All checks will be
+held for bank clearance. (7-10 days) Make payable to: 
+"SELLERS COMMUNICATIONS"
+-=-=-=-=--=-=-=-=-=-=-=Remove Instructions=-=-=-=-=-=-=-=-=-=-=-=**************************************************************
+Do not reply to this message - 
+To be removed from future mailings:
+mailto:nomore2001@asean-mail.com?Subject=Remove
+**************************************************************
+SENDER: RAHA ALI <rahaali00003@hotmail.com>
+RECEIVER: 
+DATE: Sun, 18 Mar 2007 16:49:20 +0000
+SUBJECT: FROM  MR . RAHA. ALI , WAITING TO READ FROM YOU SOONEST
+BODY
+FROM THE DESK OF:MR . RAHA. ALI
+dIRECTOR AUDIT AND ACCOUNTING DEPARTMENT,
+BANK OF AFRICA, OUAGA-BURKINA-FASO.
+
+ATTN: Please.
+
+Greetings to you, I am Mr.Raha.Ali. the Account Manager of Late Mr.Morris 
+Thompson in Bank of Africa, here in Burkina Faso.However I got your contact 
+through the International web directory.I decided to contact you by email 
+because I feel that it is more secured and private.
+
+Recently i discovered a Dormant Account with a huge amount of Money Valued 
+USD14,000,000.00 (Fourteen Million Dollars only)that belongs to one of our 
+late Customer who died in a plane crash.
+
+During our investigation and auditing in this bank, my department came 
+across a very huge sum of money belonging to Late Mr. Morris Thompson an 
+American great industrialist and a resident of Alaska, who unfortunately 
+lost his life in the plane  crash of Alaska Airlines Flight 261 which
+crashed on January 31 2000,including his wife and only daughter.
+
+You shall read more news about the crash on visiting this site which I
+got during my 
+investigation;http://www.cnn.com/2000/US/02/01/alaska.airlines.list/
+andttp://www.nativefederation.org/history/people/mThompson.html
+
+The fund has been dormant in his account With this Bank without any claim of 
+the funds in our custody either from his family or relation before our 
+discovery of this development.
+
+The Banking law here stipulates that if such money remains unclaimed for Six 
+years, it will be forfeited to the Bank treasury as an unclaimed bill.It is 
+only a foreigner that can stand as a next of kin and It is upon this 
+discovery that I decided to contact you to collaborate with you to pull
+out this dormant fund.
+
+In order to avert this negative development, I on behalf of my trusted 
+colleagues now seek your permission to have you stand in as next of kin to 
+Our late Customer so that the fund will be released and paid into your 
+account as the beneficiarys next of kin now that the bank is still
+expecting a next of kin or relative of the deceased ,Late Mr. Morris 
+Thompson.
+
+In fact we could have done this deal alone but because of our position in 
+this country as civil servants, we are not allowed to operate a foreign 
+account and that would eventually raise an eye brow on our side during the 
+time of transfer since I still work in this bank, this is the actual
+reason why I required a second party or fellow who will assist me forward 
+claims as the next of kin and also provide either an existing bank account 
+or to set up a new Bank a/c immediately to receive this fund, even an empty 
+a/c can also serve for this purpose.
+
+On smooth conclusion of this transaction, you will be entitled to 40% as 
+gratification for your assisting me, and the remaining 60% will be for me.
+
+What I want from you is for you to act as the deceased next of kin. I have 
+in my possession, all the necessary informations to successfully accomplish 
+this operation. Bear in mind that this proposal is 100% risk free.
+
+Further Information will be given to you as soon as I receive your positive 
+response. I suggest you get back to me as soon as possible stating your
+interest to enable us proceed.
+I await your Urgent Response
+
+Regrads,
+MR .RAHA. ALI
+BANK OF AFRICA (BOA)
+
+_________________________________________________________________
+MSN Hotmail : crez votre adresse e-mail gratuite &  vie ! 
+http://www.msn.fr/newhotmail/Default.asp?Ath=f
+
+
+
+
+URLS: 1
+SENDER: Patti Robe <idsalt@directyourmind.com>
+RECEIVER: user2.15@gvc.ceas-challenge.cc
+DATE: Thu, 07 Aug 2008 18:24:58 -0400
+SUBJECT: Helping Americans become happy and healthy
+BODY
+
+
+Opening of the door to a world full sensual delights
+
+2500 + Mens and the entire world, 24 hours customer support and free consultations with licensed physicians.
+
+VISIT OUR NEW ONLINE pharmacies
+SENDER: Tara Donaldson <akstcallseascargomnsdgs@allseascargo.com>
+RECEIVER: user2.10@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 09:15:01 +0900
+SUBJECT: Premo Health Reductions
+BODY
+
+Perfected Medical Alternatives
+
+http://anythingcando.spaces.live.com/default.aspx
+
+them to work immediately. 
+brain in a way that sticks. 
+
+Victoria K., Colorado
+SENDER: bink chao-yan <bellm@ames.net.au>
+RECEIVER: user8.2-ext2@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 05:06:42 +0000
+SUBJECT: You will make her 5 times a night
+BODY
+
+Dear ebcd63f3b203b71936f16a6f0c4f806a
+
+Summer is a good time to take a  break off at work and think about your health & personal life.
+
+And we are glad to assist you with it.
+
+ From now on till 30th of September you can use our particular proposal.
+
+Check our site for further details.
+
+traditionstreet.com
+
+6 Aug 2008 06:51:17
+teens on webcams - have you ever watched ? ? ? it ' s free & here is how to do it ! free access - get started now - fast & easy - exclusive full screen modes - chat or spy - hundreds of live shows right now - no special software or equipment needed - highest quality webcam video ! constant new live webcam shows , archives of thousands of past shows , pictures and personal information on all your favorite webcam girls ! thousands to choose from all around the globe ! join this incredible webcam network ! get out ? http : / / www . brokenfarted . com / extra / personalsxxx / getmeoff . php
+
+The Easiest Way to Discover the Truth about Anyone
+NetDetective 7.0 is an amazing new tool that allows you to dig up facts about anyone. It is all completely legal, and you can use it in the privacy of your own home without anyone ever knowing. It's cheaper and faster than hiring a private investigator.Instantly locate anyone's e-mail address, phone number or address
+Get a copy of your FBI file 
+Find debtors and locate hidden assets 
+Check driving and criminal records 
+Locate old classmates, a missing family member, a long-lost love 
+Investigate your family history - births, marriages, divorces, deaths Gain access to social security records 
+Discover little-known ways to make untraceable phone calls And a lot more ...
+Click here for instant download
+Endorsed by the National Association of Independent Private Investigators (NAIPI)
+Â 
+Â 
+You received this email because you signed up at one of Offer888.com's websites or you signed up with a party that has contracted with Offer888.com. To unsubscribe from our newsletter, please visit http://opt-out.offer888.net/?e=jm@netnoteinc.com. 
+business cooperation in textile products professional in making outerwears for motor - racing , sailing , skiing , hunting , fishing , beach and promotion . 1 . our products are qualified to the iso standards and aql standard . 2 . our price level is most competitive and realistic . 3 . our production quantity could be flexible from 100 pcs per colour per style . we have existing fabrics with different qualities and different colours . 4 . our sampling lead - time could be within 7 - 10 days . 5 . our delivery date could be within 25 - 30 days . 6 . we could apply embroideries , imprints and labels on the products with clients ? ¦ logo artworks . 7 . we could also produce textile item styles with clients ? ¦ designs and instructions . we are looking forward to developing our business in near future . thanks for your kind attention . contact : contact person : mr . christopher ho ( hk mob : ( 852 ) 9345 5790 / cn mob : ( 86 ) 132 4647 2480 ) http : / / www . tex - win . com mr . ben hui http : / / www . tex - po . com garmentsproduction factory : texwin garments factory industrial development zone , hengsan , guangning city , guangdong province , china tel : ( 86 ) 758 8651529 fax : ( 86 ) 758 8651342 website : http : / / www . tex - po . com website : www . tex - win . com / www . tex - po . com / www . sailing - po . com / www . hunting - po . com / www . bebe - po . com texpo new products and fabrics materials offers : stock sales - promotional sportswears : polarfleece gilet ! ! ! new fabric for surf sailing sportswears : microfibre peach ! ! ! this email would be sent once only . we apologize for any inconvenience caused .
+SENDER: Daily Top 10 <romretez@noorpharma.com>
+RECEIVER: email2092@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 19:51:03 -0300
+SUBJECT: CNN.com Daily Top 10
+BODY
+>+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+= >THE DAILY TOP 10 >from CNN.com >Top videos and stories as of: Aug  1, 2008  3:58 PM EDT >+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+= TOP 10 VIDEOS 1. MOM PARTIES AT A CLUB http://www.cnn.com/video/partners/email/index.html?url=/video/crime/2008/08/05/ng.mom.pics.cnn Nancy Grace has new photos of Casey Anthony partying at a nightclub after her daughter Caylee vanished. 2. WOMAN'S COMPUTER SPIES ON HER http://www.cnn.com/video/partners/email/index.html?url=/video/tech/2008/08/05/pkg.webcam.spying.wcjb 3. TIGERS ATTACK TEEN AT ZOO http://www.cnn.com/video/partners/email/index.html?url=/video/us/2008/08/05/wuellner.tiger.attacks.teen.kytv 4. MISTRESS TESTIFIES IN TRIAL http://www.cnn.com/video/partners/email/index.html?url=/video/crime/2008/08/05/sot.love.triangle.zammitti.cnn 5. MAN CALLS 911 OVER SANDWICH http://www.cnn.com/video/partners/email/index.html?url=/video/crime/2008/08/05/spivey.911.call.sandwich.wtlv 6. JOHN 'JUNIOR' GOTTI ARRESTED http://www.cnn.com/video/partners/email/index.html?url=/video/us/2008/08/05/ny.gotti.jr.handcuffs.cnn 7. PASSENGERS SLIDE FROM PLANE http://www.cnn.com/video/partners/email/index.html?url=/video/us/2008/08/05/vo.aa.plane.evacuated.KTLA 8. PLANE EVACUATES PASSENGERS http://www.cnn.com/video/partners/email/index.html?url=/video/us/2008/08/05/nr.beeper.ca.plane.evacuate.cnn 9. PIPELINE FIRM HELPS SAVE GAS http://www.cnn.com/video/partners/email/index.html?url=/video/tech/2008/08/05/marciano.pipeline.telecommuting.cnn 10. 125,000 GORILLAS FOUND http://www.cnn.com/video/partners/email/index.html?url=/video/world/2008/08/05/vo.congo.gorilla.WCS TOP 10 STORIES 1. SMOKE FORCES EMERGENCY LANDING http://www.cnn.com/2008/US/08/05/emergency.landing/index.html Passengers evacuate an American Airlines jet by inflatable slides after an emergency landing at Los Angeles' airport, an official says. 2. HOPES FOR GORILLA SURVIVAL BOOSTED http://www.cnn.com/2008/WORLD/africa/08/05/congo.gorillas/index.html 3. STAY-AT-HOME WIVES WITHOUT KIDS http://www.cnn.com/2008/LIVING/wayoflife/08/05/lw.nokids.nojob.wives/index.html 4. COMMENTARY: IMMIGRANT SANCTUARIES http://www.cnn.com/2008/POLITICS/08/04/navarrette.immigration/index.html 5. FREEMAN RECOVERING AFTER SURGERY http://www.cnn.com/2008/SHOWBIZ/Movies/08/05/people.morgan.freeman.ap/index.html 6. JOHN "JUNIOR" GOTTI ARRESTED http://www.cnn.com/2008/CRIME/08/05/gotti.arrest/index.html 7. TOXIN DIMS HOPES FOR MARS LIFE http://www.cnn.com/2008/TECH/space/08/04/nasa.mars/index.html 8. THE LURE OF THE R-RATED COMEDY http://www.cnn.com/2008/SHOWBIZ/Movies/08/05/film.rrated.comedies.ap/index.html 9. STARBUCKS OFFERS AFTERNOON DEAL http://www.cnn.com/2008/US/08/05/starbucks.deal.ap/index.html 10. EDOUARD MAKES LANDFALL http://www.cnn.com/2008/US/weather/08/05/tropical.weather/index.html CNN, The Most Trusted Name in News >    Cable News Network LP, LLLP.                       < >    One CNN Center, Atlanta, Georgia 30303             < >    2008 Cable News Network LP, LLLP.                  < >    A Time Warner Company.                             < >    All Rights Reserved.                               < ========================================================= =   Please send comments or suggestions by going to     = =           http://www.cnn.com/feedback/                = =                                                       = =      Read our privacy guidelines by going to          = =         http://www.cnn.com/privacy.html               = ========================================================= You have agreed to receive this email from CNN.com as a result of your CNN.com preference settings. To manage your settings, go to: http://www.cnn.com/linkto/bn.manage.html To unsubscribe from the Daily Top 10, go to http://cgi.cnn.com/m/clik?e=email2092@gvc.ceas-challenge.cc&l=cnn-dailytop10
+SENDER: Pat Owen <SantiagobistableWong@festivals.com>
+RECEIVER: user2.9@gvc.ceas-challenge.cc
+DATE: Thu, 07 Aug 2008 16:02:50 +0300
+SUBJECT: Click here to purchase high-quality replica watch 
+BODY
+
+Famous Replica Watches    ROLEX   Cartier   Bvlgari   
+
+Purchase cheap Vacheron Constantin replica watch here   
+
+Order Rolex Replica //atches 0nline!   
+
+http://dryadsnedsjaw.com/
+SENDER: Daily Top 10 <Boba-dempte@pgh2o.com>
+RECEIVER: user2.2@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 02:50:06 +0200
+SUBJECT: CNN.com Daily Top 10
+BODY
+>+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+= >THE DAILY TOP 10 >from CNN.com >Top videos and stories as of: Aug  1, 2008  3:58 PM EDT >+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+= TOP 10 VIDEOS 1. MONTAUK 'MONSTER' http://www.cnn.com/video/partners/email/index.html?url=/video/us/2008/07/31/moos.montauk.monster.cnn Is it a devil dog? Is it a turtle? Is it the Montauk Monster? CNN's Jeanne Moos asks, "what is this thing?" 2. RACY PHOTOS OF TODDLER'S MOM http://www.cnn.com/video/partners/email/index.html?url=/video/crime/2008/07/31/ng.racy.photos.cnn 3. NEWS OF THE ABSURD EPISODE 54 http://www.cnn.com/video/partners/email/index.html?url=/video/podcasts/absurd/site/2008/08/01/nota.episode.54.cnn 4. POLICE BEATING DISPUTE http://www.cnn.com/video/partners/email/index.html?url=/video/us/2008/07/31/levs.police.video.cnn 5. MOM PLEADS FOR GIRL'S RETURN http://www.cnn.com/video/partners/email/index.html?url=/video/crime/2008/08/01/hill.boss.reigh.plea.cnn 6. DEFENDANT FAKES HEART ATTACK http://www.cnn.com/video/partners/email/index.html?url=/video/crime/2008/08/01/dnt.fake.heart.attack.mxf.whio 7. KILLER CARRIED VICTIM'S HEAD http://www.cnn.com/video/partners/email/index.html?url=/video/world/2008/07/31/natpkg.can.bus.decapitation.ctv 8. MURDER CONFESSION RECANTED http://www.cnn.com/video/partners/email/index.html?url=/video/world/2008/08/01/blake.brazil.teen.murder.itn 9. ANTHRAX SUSPECT'S HOME http://www.cnn.com/video/partners/email/index.html?url=/video/us/2008/08/01/von.dr.bruce.ivins.home.cnn 10. HECKLERS INTERRUPT OBAMA TALK http://www.cnn.com/video/partners/email/index.html?url=/video/politics/2008/08/01/sot.fl.obama.protesters.baynews9 TOP 10 STORIES 1. SUSPECT IN BEHEADING IDENTIFIED http://www.cnn.com/2008/WORLD/americas/08/01/canada.beheading/index.html Canadian police say Vince Weiguang Li, 40, of Edmonton is charged with second-degree murder in the beheading of a man on a bus. 2. JUDGE TAKEN OFF LAST JENA 6 CASES http://www.cnn.com/2008/CRIME/08/01/jena6.appeal/index.html 3. PEOPLE MAG GETS PITT-JOLIE PIX http://www.cnn.com/2008/SHOWBIZ/Movies/08/01/brangelina.photos.ap/index.html 4. ATTACK IN TORONTO CALLED RACIAL http://www.cnn.com/2008/WORLD/americas/08/01/canada.attack.ap/index.html 5. IREPORTERS' UNUSUAL NAMES http://www.cnn.com/2008/LIVING/08/01/unusual.names.irpt/index.html 6. MOTHER PLEADS FOR CHILD'S RETURN http://www.cnn.com/2008/CRIME/08/01/rockefeller.kidnapping/index.html 7. KARADZIC: I MADE DEAL WITH U.S. http://www.cnn.com/2008/WORLD/europe/08/01/karadzic.trial/index.html 8. SUSPECT ARRESTED IN SWIM KILLINGS http://www.cnn.com/2008/CRIME/08/01/wisconsin.shooting.ap/index.html 9. ANTHRAX SUSPECT APPARENT SUICIDE http://www.cnn.com/2008/CRIME/08/01/anthrax.death/index.html 10. MCCAIN: OBAMA CRITICISM 'FAIR' http://www.cnn.com/2008/POLITICS/08/01/campaign.wrap/index.html CNN, The Most Trusted Name in News >    Cable News Network LP, LLLP.                       < >    One CNN Center, Atlanta, Georgia 30303             < >    2008 Cable News Network LP, LLLP.                  < >    A Time Warner Company.                             < >    All Rights Reserved.                               < ========================================================= =   Please send comments or suggestions by going to     = =           http://www.cnn.com/feedback/                = =                                                       = =      Read our privacy guidelines by going to          = =         http://www.cnn.com/privacy.html               = ========================================================= You have agreed to receive this email from CNN.com as a result of your CNN.com preference settings. To manage your settings, go to: http://www.cnn.com/linkto/bn.manage.html To unsubscribe from the Daily Top 10, go to http://cgi.cnn.com/m/clik?e=8ade5f0ea5104f10f6129ba64c16fa95@gvc.ceas-challenge.cc&l=cnn-dailytop10
+SENDER: Kerry Hebert <dwwebinm@webin.jp>
+RECEIVER: user7@gvc.ceas-challenge.cc
+DATE: Fri, 08 Aug 2008 10:33:33 +0300
+SUBJECT: Purchase  you meds in easy and confidential way in CanadianPharmacy.
+BODY
+
+
+
+
+
+
+
+P tl har pj ma dvg cy On ui line
+
+Over 2 Million Pre quq script gn ions Fil cbd led
+Lowest Pri svs ce Guaran csu tee. Bu kdi y On osq line! 
+
+http://casetrip.com
+SENDER: garfinkel naftaly <info@tokyotosho.co.jp>
+RECEIVER: user7-ext4@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 02:41:49 +0000
+SUBJECT: For:bf63f1dc6f9289d197d35f051cc631cd Britney and Paris Lesbian video
+BODY
+wgiVgMWhOtqHvqPnpJoZByVXJhjXwgiVgMWhOtqHvqPnpJoZByVXJhjXwgiV 
+ WATCH WhOtqHvqPnpJoZByVXJhjXwgiVgMWhOtqHvqPnpJoZByVXJhjXwgiVgMWhOt
+ad - it ' s amazing how differently the girls like you when they find out you have a 8 " long wanker , thanks to this contraption warnig : this email contains a picture of a man with a massive prick . scroll down if you want to see how to get a massive wiener too . 0 it expand your dick now ! this method manually lengthens your rod . no bs pills / patches or exercises that don ' t work ! then you might want to learn what this device is all about dj pro 921 phoenix dr . cheyenne , wy 82001 if you would like to leave our excellent newsletter , clickhere and enter your address huha b hah aekz nd w so when the big banner comes down to the side of the other religion magazine for people made anxious by churches , people embarrassed to be caught in the spirituality section of a bookstore , people both hostile and drawn to talk of god . it is for people who somehow want to be religious , who want to know what it means to know the divine , but for good reasons are not and do not . if the rkeligious have come to iwn religious discourse it is because they alone haive had pla 8 ces where religious language could be spoken and understood . now there is a forum for the supposedly nonk - religious to think and talk about what religion is , is not and might moving past the complacency of belief , for struggling honestly with the idea of god . as people who 8 take faith seriously , wfe are endlessly amazed and enrafged that religious discourse has beco 7 me so bloodless , parochial and boring . any god worth the name ifs none of these things . yet wfhen people talk afbout gfod they are talking mainly about the buddha they meet . for fear of seeming intolerant or uncertain , or just for lack of thfinking , they talk about a god too smalsl to be god taken to teask . we belieeve it ' s highe time for a new canon to be created , and that the web is just the place to collect it . we refuse to accept the internet as a world wide shoppinag mall . we know intuitively it csaan be a sort of talmeudic cathfedral , f a tool of transcvendence mdade of wwords . we ' re hesre to bauild it . if the end resdult lookfs more likre babel than the city of god , so be it . babel , after all , came close . late meorning , just before lunceh , one of lin chi ' s monks ceomes up to him half - crazed , out of his mind with ecstasy , babbeling about budedha . says he ' s seen him . says he was just walking down the reoad when suddenly : buddhamind . enlighteenment . nirveana . the big payoff . the monk cane ' t stop talking about it . lin chi strikes a match , lights his pipe , takes a loeng drag . leaves the meonk hanging , waiting for his reward . instead , lin chi bdlows a cloud of smoke , reaches out , aend smacks him .
+SENDER: Thibault <>
+RECEIVER: user2.11@gvc.ceas-challenge.cc
+DATE: Tue, 05 Aug 2008 22:34:32 -0400
+SUBJECT: Generate the best love results here
+BODY
+Bang her with all your might, renew your mighty morphing power pecker. http://www.fiftywait.com/
+= ? utf - 8 ? q ? equal medicine - bit ? = = ? utf - 8 ? q ? ty monetary value ! ? = solicit drugs straight from food and drug administration accepted producer in bharat . safe up to 70 % on indian narcotics . our site
+SENDER: "Admin monkey.org" <contact@shukcar.com>
+RECEIVER: jose@monkey.org
+DATE: Thu, 23 Jul 2020 11:58:06 +0000 (UTC)
+SUBJECT: Kindly Confirm Your Password Now
+BODY
+ID: jose@monkey.org Your jose@monkey.org password expires today at 7/23/2020 4:58:05 a.m. Use the button below to continue with same password CLICK NOW
+SENDER: dorothy <atvdhimleiolpg@ibecame.com>
+RECEIVER: hrs404@gvc.ceas-challenge.cc
+DATE: Fri, 08 Aug 2008 06:13:11 -0800
+SUBJECT: it`s dorothy
+BODY
+
+
+Hi,
+i am here sitting in the internet caffe. Found your email and
+decided to write. I am 25 y.o.girl.
+I have a picture if you want. No need to reply here as 
+this is not may email. Write me at dorothy807@cardrealc.com
+the smart way to control spam i have a special _ offer for you . . . better than all other spam filters - only delivers the email you want ! this is the ultimate solution that is guaranteed to stop all spam without losing any of your important email ! this system protects you 100 % . we didn ' t believe it either until we actually tried it . so you be the judge and see for yourself . you owe it to yourself to try this program , and forward this email to all of your friends who hate spam or as many people as possible . get rid of unwanted emails now . to be dropped from our list enter your email address here . p . revia marketing , inc . 848 n . rainbow blvd . # 316 las vegas , nv 89107 conforms to legal requirements of 2003 us can - spam act . morass author conference author dee actuate
+brand new software microsoft office xp professional with sp 2 - $ 49 . 95 http : / / serviceman . jetlow . com / i do begin to have bloody thoughts . silence is one of the hardest arguments to refute . believe one who has proved it . believe an expert .
+SENDER: <test2070w16@hotbot.com>
+RECEIVER: Postmaster@locust.minder.net
+DATE: Sun, 21 Jul 2002 11:23:59 +1000
+SUBJECT: Phone service                                                                 2968ZuyW7-202zTVW0499-20
+BODY
+------=_NextPart_000_00D0_65B52D1A.C4816C13
+Content-Type: text/html; charset="iso-8859-1"
+Content-Transfer-Encoding: base64
+
+
+DQo8Ym9keSBiZ2NvbG9yPSIjRkZGRkZGIiB0ZXh0PSIjQ0MzMzMzIj4NCjxw
+Pjxmb250IGZhY2U9IkFyaWFsLCBIZWx2ZXRpY2EsIHNhbnMtc2VyaWYiPjxi
+Pjxmb250IHNpemU9IjMiPkhpOiA8YnI+DQogIDwvZm9udD48L2I+PC9mb250
+PjwvcD4NCjxwPjxiPjxmb250IGZhY2U9IkFyaWFsLCBIZWx2ZXRpY2EsIHNh
+bnMtc2VyaWYiIHNpemU9IjMiIGNvbG9yPSIjMDAwMDAwIj5IYXZlIA0KICB5
+b3UgYmVlbiBwYXlpbmcgdG9vIG11Y2ggZm9yIHlvdXIgaG9tZSBvcjxicj4N
+CiAgYnVzaW5lc3MgbG9uZyBkaXN0YW5jZT88L2ZvbnQ+PC9iPjwvcD4NCjxw
+Pjxmb250IGZhY2U9IkFyaWFsLCBIZWx2ZXRpY2EsIHNhbnMtc2VyaWYiIGNv
+bG9yPSIjMDAwMDAwIj48Yj48Zm9udCBzaXplPSIzIj5IYXZlIA0KICB5b3Ug
+YmVlbiBsb29raW5nIGZvciBhbiBhZmZvcmRhYmxlIGJ1dCBob25lc3Q8YnI+
+DQogIGxvbmcgZGlzdGFuY2UgYWx0ZXJuYXRpdmU/PC9mb250PjwvYj48L2Zv
+bnQ+PC9wPg0KPHA+PGZvbnQgZmFjZT0iQXJpYWwsIEhlbHZldGljYSwgc2Fu
+cy1zZXJpZiI+PGI+PGZvbnQgc2l6ZT0iMyI+V2UgYXJlIG9mZmVyaW5nIA0K
+ICBGaWJlciBvcHRpYyBMb25nIGRpc3RhbmNlIGZvcjxicj4NCiAgYXMgbG93
+IGFzICQ5Ljk1IHBlciBtb250aCE8L2ZvbnQ+PC9iPjwvZm9udD48L3A+DQo8
+cD48Zm9udCBmYWNlPSJBcmlhbCwgSGVsdmV0aWNhLCBzYW5zLXNlcmlmIj48
+Yj48Zm9udCBzaXplPSIzIj48YSBocmVmPSJtYWlsdG86cGhvbmVvZmZlcjAw
+MUBuZXRzY2FwZS5jb20/c3ViamVjdD1QaG9uZW9mZmVyIj5FbWFpbDwvYT4g
+DQogIHVzIHdpdGggeW91ciBwaG9uZSBudW1iZXIgYW5kIHdlJ2xsIGNhbGwg
+eW91PGJyPg0KICBiYWNrIHNvIHlvdSBjYW4gaGVhciBob3cgZ3JlYXQgdGhl
+IGNvbm5lY3Rpb24gaXMuPGJyPg0KICA8YnI+DQogIFNpeCBwbGFucyB0byBj
+aG9vc2UgZnJvbSBpbmNsdWRpbmcgYSB0cmF2ZWwgcGxhbi4gPGJyPg0KICA8
+YnI+DQogIDxmb250IGNvbG9yPSIjMDAwMDAwIj5UaGVyZSBhcmUgbm8gY3Jl
+ZGl0IGNoZWNrcyBhbmQgYmVjYXVzZSB5b3UgZG9uJ3QgPGJyPg0KICBuZWVk
+IHRvIGNoYW5nZSB5b3VyIGxvbmcgZGlzdGFuY2UgY2FycmllciwgeW91ciA8
+YnI+DQogIHNlcnZpY2UgY2FuIGJlIHR1cm5lZCBvbiBpbiBqdXN0IGEgZmV3
+IGhvdXJzLiA8YnI+DQogIDwvZm9udD48YnI+DQogIERpc3RyaWJ1dG9ycyBu
+ZWVkZWQhIDxicj4NCiAgPGJyPg0KICA8Zm9udCBjb2xvcj0iIzAwMDAwMCI+
+V2UgaGF2ZSBkaXN0cmlidXRvcnMgbm93IG1ha2luZyBhIGZldyBodW5kcmVk
+IHRvIDxicj4NCiAgbWFueSB0aG91c2FuZHMgb2YgZG9sbGFycyBwZXIgbW9u
+dGggZnJvbSB0aGUgY29tZm9ydCA8YnI+DQogIG9mIHRoZWlyIGhvbWVzLiA8
+L2ZvbnQ+PGJyPg0KICA8YnI+DQogIE9idGFpbiA8YSBocmVmPSJtYWlsdG86
+cGhvbmVvZmZlcjAwMUBuZXRzY2FwZS5uZXQ/c3ViamVjdD1QaG9uZW9mZmVy
+Ij5jb21wbGV0ZSANCiAgZGV0YWlsczwvYT4gSW5jbHVkZSB5b3VyIHBob25l
+IG51bWJlci0gd2UnbGw8YnI+DQogIGNhbGwgeW91IGJhY2sgdG8gY29uZmly
+bSBvdXIgY3Jpc3AgY2xlYXIgY29ubmVjdGlvbi48YnI+DQogIDxicj4NCiAg
+VG8gYmUgcmVtb3ZlZDogPGEgaHJlZj0ibWFpbHRvOm5vdHRvZGF5QG5ldHNj
+YXBlLm5ldCI+Y2xpY2sgaGVyZTwvYT48L2ZvbnQ+PC9iPjwvZm9udD48L3A+
+DQoNCjA2NzNNRW5vMC0yODVVbGF0NzkyMHV6THY5LTMyOE5UVlY1NzE3YnlH
+VjEtMzg4bDQ0
+------=_NextPart_000_00D0_65B52D1A.C4816C13--
+
+--DeathToSpamDeathToSpamDeathToSpam--
+
+
+-------------------------------------------------------
+This sf.net email is sponsored by:ThinkGeek
+Welcome to geek heaven.
+http://thinkgeek.com/sf
+_______________________________________________
+Spamassassin-Sightings mailing list
+Spamassassin-Sightings@lists.sourceforge.net
+https://lists.sourceforge.net/lists/listinfo/spamassassin-sightings
+SENDER: Jeremiah Terry <Jeremiah@dlgnet.dk>
+RECEIVER: user8.3@gvc.ceas-challenge.cc
+DATE: Thu, 07 Aug 2008 15:21:42 +0300
+SUBJECT: Gain additional centimeters
+BODY
+Due to new improved enhancement solution, your gained centimeters will stay for a lifetime!
+Initiate crucial changes in your love life!
+http://wearplaces.com/
+
+
+Didier Drogba up front as strikers. Martin Atkinson wasJune in Flanders. But, as Van Bellingen pointed out:little more in the way of attacking threat, with a wide
+our psychics have a message for you bait - excelled @ em . ca having problems seeing the graphics ? please go here . this offer was sent to you on behalf of : http : / / www . psychicrealm . com / 0819 - 12260 zona 6 a , panamarepublic of panama if you would prefer not to receive emails from this advertiser in the future , please visit here . this message is a solicitation . if you wish to opt - out from further e - mails , please go here . you can also write to us at : kudossweeps . com opt - out department 6311 van nuys blvd # 403 van nuys , ca 91401
+the bible is a proven hoax click here , www . hoax - buster . org for more information . this is a paid advertisement . any views are not in any way our opinion as the advertiser of this ad . if you wish to be taken off this list please reply
+c r a z y â â h 0 l 1 d a y â â - â â l 0 l 1 t a z â â s 1 t e â â â assist lubbock dentistry reverts portal flora chant procyon tippers rectify bridesmaid jeres centigrade mutative undeclared psychic shopper icebergs terrified electric retiree pesticide c r a z y â â h 0 l 1 d a y â â l ' 0 ' l ' 1 ' t ' a ' s â â s 1 t e hutchinson vouch duplicated christie isthmus l ' 0 ' l ' 1 ' t ' a ' s â â â h ' e ' r ' e ! draws devices picketer bumbry friendlier titan riddled bonded bustling makings hoodlum roomful detention clean humble transitory winker pantry inability stockholm
+SENDER: Denys <>
+RECEIVER: user8.3@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 11:58:02 +0200
+SUBJECT: How to make her your slave
+BODY
+
+
+
+
+
+
+Keep dreaming of your dream girl, or make her yours today with our
+cool tips. http://www.fiftywait.com/
+SENDER: Reuben Stallings <linjayamet@jaya.de>
+RECEIVER: lester_ganns@gvc.ceas-challenge.cc
+DATE: Tue, 05 Aug 2008 23:38:48 -0800
+SUBJECT: Give your partner new feelings while have a sex m yq x
+BODY
+PWhen you come to concl fk usion that you need to e ofd nla ml rge your p zn en fa is, the most important thing is to find safe and effective way to do it. Once you tried 100 % sa vo fe Po oo we dyb rEn au lar ls ge, you'll never look for other m ggt eth ptp ods or de mm vic ht es.
+You can exp yo ect an in ut cre tze ase ranging from 1 to 4 i czq nc nwt hes in le mni ng aa th after a 4 mon ny th supply, but we do re sim com ej mend the 6 mon zk th pa vh cka zra ge for better re coa su nel lts and hi yn gher savings.
+Gain 3+ In ktp ch cg es In L uzr en gv gth.OWERClick here!!! ... http://relurl.com/EM7
+SENDER: patri <patcamara74@yahoo.com>
+RECEIVER: webmaster@aclweb.org
+DATE: Thu, 31 Mar 2005 14:01:08 +0100
+SUBJECT: regards!
+BODY
+Hello,
+
+I am Patrick Camara. From the Federal Republic of
+liberia, but presently residing in Dakar-Senegal due
+to political problem.
+
+However,I humbly wish to inform you in my proposal to
+you that I have about 350kg of Au metal [GOLD],22 carat
+[Quality] and purity 92.5% and 14,585 Rough Diamond.
+
+Due to my financial status ,I have decided to sell
+each kilo 4500 USD quite below the world market price.
+
+I shall discuss other vital information and document
+as regards to the origin to you immediately you
+indicate your interest.
+
+You may reply through my alternate e-mail address or
+call me on my telephone line.
+
++221-699-2073
+
+I am looking forward to receive your reply.
+
+Yours truly, 
+Patty
+
+URLS: 0
+SENDER: Imogene Cook <satinwoods@technovistainc.com>
+RECEIVER: user8.1@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 11:55:00 -0300
+SUBJECT: US $ 69.95 buy now Viagra 100mg x 10 pills
+BODY
+
+US $ 89.95 buy now Viagra (Sildenafil) 50mg x 30 pills
+http://zyq8ha.blu.livefilestore.com/y1pP9gmpcpHaHWdSDiYzYCTrJz0SLMu8bTHPjjsEHcADFHKXdxGFvwRNoh2vXQWCnt17A-maAiRhU_Y6ELqXngddQ/index.html
+SENDER: Toby Keyes <estimabled@chinaarttour.com>
+RECEIVER: user6@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 09:49:59 +0100
+SUBJECT: CertifiedShippingFastShipping
+BODY
+
+VisaAcceptedCanadianOnlineDrugstore
+http://bmbpmw.blu.livefilestore.com/y1pTHITQ8CTDjpuDVFJdQFad2qCtaCJElI4ShapjFCth_oK7pNqGbGnOOlgFpptkumSZJGsSJ8yD2z3jIjiNASnMQ/index.html
+Thanks 4 your continued support Your question this week will enter u in2 our draw 4 £100 cash. Name the NEW US President? txt ans to 80082
+You have an important customer service announcement. Call FREEPHONE 0800 542 0825 now!
+SENDER: Edwin Slaughter <nuministerial@aupairagency.com>
+RECEIVER: user2.14@gvc.ceas-challenge.cc
+DATE: Tue, 05 Aug 2008 16:46:22 +0200
+SUBJECT: Force men's items
+BODY
+
+
+
+US Licensed Health shop, 24h Shipping, NO RX required !
+
+
+Get the latest news on your health.
+
+Here!
+
+
+
+
+fIreceived fLsetregid fairchance
+equicrural featherede eprejudice
+excerpting er-charged er-wrested
+entitities enneatical exeptional
+SENDER: mounsteven <>
+RECEIVER: user8.2-ext1@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 08:53:38 +0800
+SUBJECT: Psychologist endorsed products for men
+BODY
+Your girlfriend will stay by your side forever with our help http://www.fiftywait.com/
+>>From the ethnobotanical herbalists who brought the herba supplementals; Kathmandu Temple Kiff â€œ1â€ & â€œ2â€ â€œPersonal-Choiceâ€, pipe-smoking products/substances to the common market!!!  *********************************************************************************
+Now Open Seven Days A Week!
+  
+To express our appreciation to all of our loyal customers, we are offering the following products "2 for 1"  for a limited time only.  Ragga Dagga, Stoney Mahoney, Sweet Vjestika, Aqueous Kathmandu, along with a free 1oz. package of Capillaris Herba.Now Open Seven Days A Week!  Call 1-623-974-2295 and Get the 2 for 1 Deal ! 10:30 AM to 7:00 PM (Mountain Time)
+*********************************************************************************We are finally able to offer for your â€œSensitive/Responsiveâ€, â€œPersonal Choiceâ€ Smoking Enjoymentâ€¦.the â€œSeventh Heavenâ€ Temple â€œ3â€ Ragga Dagga (TM) Pipe-Smoking Substance Supplemental Productâ€¦. Introduced after three years of research and development; Temple â€œ3â€ is â€œPersonal Choiceâ€ legal Smoking/Indulgenceâ€¦.Redefined!!!  Thanks to recent, dramatic, technological advances in the laboratorial processes for the extraction of alkaloid and glycocide supplements from botanicals/herbas/plant matter, we are now able to offerâ€¦.in more cultivated/enhanced/viripotent/substantiated formatâ€¦.what had actually already been the most significant, lawful, â€œPersonal Choiceâ€ smoking substance available on the planetâ€¦.  â€œSeventh Heavenâ€ Temple â€œ3â€ Ragga Dagga (TM) is the sweet, sweet evolution of all of thatâ€¦. * A 20 X MORE VIRIPOTENT HERBA SUPPLEMENT THAN ITS PREDESSORS (TEMPLE â€œ1â€ & â€œ2â€).* HAPPIER, HAPPY SMOKING!!!* INDEED, A DEPRESSIVE REGRESSIVE, SUPPLEMENTAL MOOD-ENHANCER.* MORE SOPHISTICATED, UPLIFTING & POISED THAN ILLEGAL SMOKING  SUBSTANCES.* NO REGULATION, NO ILLEGALITY, NO FAILED DRUG TESTS!!!* INHIBITS STRESS AND ANXIETYâ€¦.* INSPIRES CONTEMPLATIVENESS & CREATIVITYâ€¦.* ENHANCES THE SEXUAL EXPERIENCE!!!* GENERATES MORE RESTFUL SLEEP & LUCID DREAMINGâ€¦.* A SIGNIFICANT HERBA / BOTANICAL SUPPLEMENT IN THE BATTLES AGAINST DRUG AND ALCOHOL DEPENDENCE!!!!* EASILY IGNITED & STOKED.* SMOKES SWEETLY! * ABSOLUTELY LEGAL / NON-INVASIVE / NO DOWNSIDE!!!* LINGERS FOR A GOOD, GOODLY WHILE!* POSSESSES MANY FINE GANJA VIRTUES WITH NONE OF THE NEGATIVES!!!* JUST A LITTLE SNIPPET / PINCH GOES A LONG, LONG WAYâ€¦.JUST 4 OR 5 DRAWS OF YOUR PIPE (A traditional hand herb-pipe is included with each package of Ragga Dagga).Temple â€œ3â€ Ragga Dagga (TM) is an exclusive, botanical/herba, proprietary; Nepalesian formulated, ultra-â€œSensitive/Responsiveâ€, pipe-smoking/stoking substance and is undoubtedly the most prestigious, legal offering of its sort on the planet!!!  So smokin/stokin potent is this cutting edge formulation, that we have even been able to establish a very happy clientele market base within the hard-core stoner arena and have made positive, happy, smoking differences in many, many lives.ABSOLUTELY LEGAL!  MARVELOUSLY POTENT!!A one-of-a-kind, proprietary amalgamation, comprised of extreme high-ratio concentrated extracts which are derived from various common and uncommon â€œsensitive/responsiveâ€ herbas primarily cultivated within and imported from the southern and eastern hemispheres; Temple â€œ3â€ Ragga Dagga (TM) high-ratio factored botanical extractions are master-crafted into solid jiggets/bars which are structurally reminiscent of what one might find in the â€œhappinessâ€ coffee and tea houses of Nepal/Kathmandu/Amsterdam and in many aspects, possesses a more collected and more focused, less scattered ambiance.  Ingredients:Temple smoking substances and Temple â€œ3â€ Ragga Dagga (TM) have always been and will always remain exclusive EXOTIC BOTANICAL RESOURCES â€œHouse Smoking Substance Specialtiesâ€.  Temple â€œ3â€ Ragga Dagga (TM) is both a euphonious/celebratory and relaxing/calming pipe-smoking substance that offers both physical and cerebral significators.  Temple â€œ3â€ Ragga Dagga (TM) is a proprietary, prescribed botanical amalgamation which includes the following synergistically/synesthesia conglomerated, core-refined, ratio-enhanced herbas/botanicals, resins, essences, flower-tops and oils in extreme ratio extractment ranging from 8.5 to 1, to 100 to 1 viripotent concentrations Drachasha, Chavana Prash, Trikatu, Black Seed Herb, Hybrid Flowering Turnera Diffusa, Capillaris Herba, Angelica Root, Wild Dagga mature leaf matter, Haritaki, Shatavari, Labdunum, Neroli, Unicorn Root, Papaver Rhoes, Dendrobian stems, Calea Zacalechichi buddings, Rue, Amla, Salvia Divinorum, Crocus Sativa, Lotus and Gokshura cuttings. Please Note:  Temple â€œ3â€ Ragga Dagga (TM) is an absolutely legal, herba/botanical, â€œPersonal Choiceâ€, pipe-smoking substantiality product!!!  No included botanical factor therein is regulated by law or considered to be harmful by regulatory agencies.  There is no tobacco in Temple â€œ3â€ Ragga Dagga (TM).  There is certainly no cannabis/marijuana in Temple â€œ3â€ Ragga Dagga (TM)â€¦.  And although we are not age-governed by lawâ€¦.Temple â€œ3â€ Ragga Dagga (TM) is intended exclusively for sophisticated adult usage! Subsequently, it is our MANDATORY ethical policy that Temple â€œ3â€ Ragga Dagga (TM) may not be sold, offered, or given to any person that has not attained at least twenty-one years of age.  All things in their timeâ€¦.  As well, Temple â€œ3â€ Ragga Dagga (TM) is not intended for use during work or while driving.  It should not be enjoyed during pregnancy nor is it intended to supercede physicianâ€™s care in any regard.========================================================
+Here is what our customers are saying about the Temple â€œ3â€ Ragga Dagga (TM) phenomenon:
+â€œThank you so much for the Ragga.  It is everything you guys claim, and then some!  I was a bit skeptical when I read your description of its effects, but there is literally no exaggeration in your advertisements.  How nice that this is non-prohibited!  It tastes great and feels great too!  I am so glad I took a chance and ordered.  Blessings to all of you.â€-- Frankie R.Location: West Coast, USAâ€œIâ€™m a man of my 40â€™s and I really know my stuff.  I donâ€™t drink or do illegal drugs anymore and have found a much more spiritual path.  I used to have to take Valium in the past.  Not anymore with the Temple â€œ3â€.  It really amazes me how this stuff tastes like the Lebanese and blonde stuff I used to smoke in the 70â€™s.  I am very satisfied with all of your products.  I like them a lot and will be a customer for life for sure.  Whoever makes this stuff is an ARTIST at it.  Who would have thought?!â€  -- A.J.Location: United Kingdom
+========================================================
+Finally, we realize of course that this Temple â€œ3â€ Ragga Dagga (TM) is not inexpensiveâ€¦. (Temple â€œ3â€ Ragga Dagga (TM) is a very, very Sweet Smoke and â€œsweetnessâ€ is never acquired inexpensively.  Such is the way of the Economic Tao....), nor, as a matter of fact, is it inexpensive for us to acquire, factor or master-craftâ€¦.  Quite simply, it is the very best of its Kind that there is to be acquired.  Just a snippet/pinch of this Temple â€œ3â€ Ragga Dagga (TM)â€¦. Four or five draws of your pipeâ€¦.as is the magical wayâ€¦.lingers for a good, goodly while!!!  (An herb pipe and usage instructions are included with each Temple â€œ3â€ Ragga Dagga (TM) Package.)â€œSeventh Heavenâ€ Temple â€œ3â€ Ragga Dagga (TM) is offered exclusively in 56 gram (2 oz.) and 22 gram (.75 oz.) jiggets/bars for $115.00 and $65.00 respectively.  Sorry, no volume discounts.  Wholesale pricing is available to qualified, select merchants only.************************************************************
+Our other fine herbal, botanical products include the following:1.  Sweet Vjestika Aphrodisia Drops (tm); An erotic aphrodisia; sexual intensifier / enhancer liquid amalgamated extract for MEN and WOMEN.
+ 
+2. "Seventh Heaven" Prosaka Tablets (tm); a botanical alternative to pharmaceutical medications for calm, balance, serenity and joyful living... 
+ 
+3. "Seventh Heaven" Gentle Ferocity Tablets (tm); a most efficacious, non-caffeine, non-ephedrine, non-MaHuang botanical energizer and cutting-edge appetite suppressant...4.  Extreme Martial Arts Botanical Remedies; Equivalence Tablets & Dragon Wing Remedy Spray ... pain management that works to alleviate pain even for arthritis and fibromyalgia sufferers...
+*********************************************
+ 
+Sweet Vjestika Aphrodisia Drops (tm) inspires and enhances:* Extreme body sensitivity
+* Sensitivity to touch
+* Desire to touch and be touched
+* Fantasy, lust, rapture, erogenous sensitivity ... 
+* Prolongs and intensifies foreplay, orgasm & climax
+*********************************************"Seventh Heaven" Prosaka Tablets ... Entirely natural, proprietary, botanical prescription comprised of uncommon Asian Herbs for Calm, Balance, Serenity and Joyful Living. "Seventh Heaven" Prosaka is indeed a most extraordinary, viripotent, calming, centering, mood-enhancing, holistically-formulated, exotic herbaceous alternative to pharmaceutical medications for depression, anxiety, stress, insomnia, etc.
+ 
+NO side effects!  NO dependency!  Vivaciously Mellow!
+**********************************************"Seventh Heaven" Gentle Ferocity Tablets (tm) ... a non-caffeine, non-ephedrine, non-ephedra, non-MaHuang; viripotent, herbaceous prescription for the dynamic energization of body, mind and spirit.  
+ 
+This Gentle Ferocity Formulation is amalgamated in accordance with the fundamental Taoist herbal principle of botanical interactiveness and precursorship which in essence is a molecular equation of the relevant botanical/herbal alkaloids and glycosides interacting with one another to prolificate molecular communion and thereby to achieve demonstrative herbal efficaciousness without negative implication to any aspect of human composition.  These Gentle Ferocity Cordial Tablets are incredulously and thoroughly effective.  Enjoy!
+ 
+For those of you who seek to achieve most demonstrative/non-invasive/non-prohibitive appetite suppression without the negative implications of ongoing usage of MaHuang Herb, Ephedra/Ephedrine or Caffeine as are so magnaminously utilized in a multitude of herbal "diet aids" entitled as "Thermogenics" ... this is ABSOLUTELY the herbal agenda/product for you!!
+ 
+Entirely Natural! Increases Energy! Increases Metabolism! Decreases Appetite!
+***********************************************Extreme Martial Arts Botanical RemediesEastern culture has long had a treatment for bone, muscle, tendon, ligament, sinew and joint distress, traumas, afflictions and constrictions.  We are pleased to offer   Equivalence Tablets  &  Dragon Wing Remedy Spray
+    (Hei Ping Shun)           (Hei Long Chibang)PLEASE NOTE:While it is true that all physiological traumas and injuries are unique and that no product can arbitrarily eliminate all of the pain and discomfort in all people all of the time, the combination of Equivalence Tablets (Hei Ping Shun) and Dragon Wing Remedy (Hei Long Chibang) remedial botanicals does guarantee to at the least:1.  Significantly reduce discomfort and pain!
+(In many instances most, if not all, traumas and distress can be eliminated!)2.  Significantly increase mobility and strength ratio.
+(Please remember also the significance of proper diet, excercise, rest and prayer.)Equivalence Tablets & Dragon Wing Spray Remedials are comprised of entirely natural botanical factors.
+ 
+While Equivalence Tablets (Hei Ping Shun) and Dragon Wing Remedy Spray (Hei Long Chibang) are extremely effective individually, they are utilized to maximum advantage when used in conjunction with one another.========================================================
+!!!!Please refer to Introductory Offers further on in this text featuring Temple â€œ3â€ Ragga Dagga (TM) along with our other â€œvery fineâ€ â€œSensitive/Responsiveâ€ cordial botanical productsâ€¦. Please enjoy!!!  Many Blessings to you allâ€¦.
+========================================================PRICING INFORMATION:
+ 
+1.    SEVENTH HEAVEN Seventh Heaven Temple 3 (tm)
+One     .75 oz. jigget/bar          $65.00
+One    2.0 oz. jigget/bar          $115.00 (Free Capillaris Herba with 2.0 oz. bar. Refer to Capillaris paragraph at end of text)
+ 
+2.    SWEET VJESTIKA APHRODISIA DROPS (tm)
+One	1.0 oz. bottle		$90.00   
+Two	1.0 oz. bottles	       $140.00  
+ 
+3.    SEVENTH HEAVEN PROSAKA (tm)
+One    100 tablet tin          $40.00
+Three  100 tablet tins        $105.00
+Six    100 tablet tins        $185.00
+ 
+4.    SEVENTH HEAVEN GENTLE FEROCITY (tm)
+One   300 tablet jar          $130.005.    Equivalence Tablets - Each bottle contains 90 - 500mg tablets.
+**  3-pack  (270 tablets)    $83.00
+**  6-pack  (540 tablets)    $126.00 (save $40.00)
+**  9-pack  (810 tablets)    $159.00 (save $90.00)
+**  12-pack (1,080 tablets)  $192.00 (save $140.00)6.    Dragon Wing Spray Remedy - Each spray bottle contains 4 liquid oz.
+**  3-pack  (3 - 4 oz. bottles)     $83.00
+**  6-pack  (6 - 4 oz. bottles)     $126.00 (save $40.00)
+**  9-pack  (9 - 4 oz. bottles)     $159.00 (save $90.00)
+**  12-pack (12 - 4 oz. bottles)    $192.00 (save $140.00)7.    Dynamic Duo Introductory Offers 
+**  3-pack Equivalence Tabs & 3-pack Dragon Wing   $126.00 (save $40.00)
+**  6-pack Equivalence Tabs & 3-pack Dragon Wing   $159.00 (save $50.00)
+**  9-pack Equivalence Tabs & 6-pack Dragon Wing   $215.00 (save $70.00)
+**  12-pack Equivalence Tabs & 9-pack Dragon Wing  $271.00 (save $80.00)
+ 
+8.   SWEET APHRODISIA INTRO COMBINATION OFFER
+Includes one, 2.0 oz. jigget/bar of Seventh Heaven Temple 3 & one, 1 oz. bottle of Sweet Vjestika Aphrodisia Drops.  For $150.00 (Reg. $205.00  Save $55)  (Free Capillaris Herba with this intro offer.  Refer to Capillaris paragraph at end of text)
+ 
+9.   BODY, MIND, SPIRIT "HEAVENLY" INTRO COMBINATION OFFER
+Includes one, 2.0 oz. jigget/bar of Seventh Heaven Temple 3 & 1 tin (100 tablets) of Seventh Heaven Prosaka.  For $125.00 (Reg. $155.00  Save $30) (Free Capillaris Herba with this intro offer.  Refer to Capillaris paragraph at end of text)
+ 
+10.  "PURE ENERGY" INTRO COMBINATION OFFER 
+Includes one, 2.0 oz. jigget/bar of Seventh Heaven Temple 3 & 1 jar (300 tablets) of Seventh Heaven Gentle Ferocity.  For $170.00 (Reg. $245.00  Save $75)  (Free Capillaris Herba with this intro offer Refer to Capillaris paragraph at end of text)
+ 
+11.  "SENSITIVE" PREFERENTIAL INTRO COMBINATION OFFER
+Includes one, 2.0 oz. jigget/bar of Seventh Heaven Temple 3 & 1 tin (100 tablets) of Seventh Heaven Prosaka & 1 jar (300 tablets) of Seventh Heaven Gentle Ferocity For $200.00 (Reg. $285.00  Save $85)  (Free Capillaris Herba with this intro offer Refer to Capillaris paragraph at end of text.)
+ 
+12.  ULTIMATE HERBACEOUSNESS INTRO COMBINATION OFFER
+Includes one - 2.0 oz. jigget / bar of Seventh Heaven Temple 3, one - 1 oz. bottle of Sweet Vjestika Aphrodisia Drops, one - 100 tablet tin of Prosaka, and one - 300 count jar of Gentle Ferocity for a deep discounted Retail Price of $260.00 (Reg. $375.00  Save $115)  (Free Capillaris Herba with this intro offer Refer to Capillaris paragraph at end of text.)
+ 
+SPECIAL OFFER:  For a limited time only, you will receive a FREE personal brass hookah with the Ultimate Herbaceous Intro Offer as our gift to you.  This hookah has a retail value of $25.00. 
+**************************************************
+Do Not Forget To Ask for the 2 for 1 Special !
+ 
+Call Now 1-623-974-2295 ASK  FOR THE DEAL !!ORDERING INFORMATION:
+For your convenience, you can call us direct with your orders or questions.
+ 
+ 7 Days a Week -- 10:30 AM to 7:00 PM (Mountain Time)
+To place an order via credit card or for customer assistance & product information, please call 1-623-974-2295    (all orders are shipped next day via US Postal domestic and international Priority Mail)â€¦ Beyond business hours, please enjoy automated convenience.  Leave your name and phone number and a convenient time to return your call.  Certainly, we will be happy to do soâ€¦. Thank you for your kind attention.  
+ 
+For all domestic orders, add $6.00 shipping & handling (shipped U.S. Priority Mail).  Add $20.00 for International orders.**************************************************====================================================To remove your address from our list, click "Reply" in your email software and type "Remove" in the subject field, then send. 
+ 
+SENDER: "IMM" <carlreed@core.com>
+RECEIVER: <fork@spamassassin.taint.org>
+DATE: Mon, 6 May 2002 21:35:17 -0400
+SUBJECT: Re: Appointment Setting
+BODY
+Professional Appointment    Setting Commercial & Residential Leads   Immediately catapults your sales  Burglar Alarms    Home Improvement • Software   • Mortgage  Insurance      Many More!!! $100 Introductory Package: 4 Manhours of Telemarketing Services Call us Toll Free at 1-800-683-0545    To remove your address, please send an e-mail message with    the word REMOVE in the subject line to:  carlreed@core.com         http://xent.com/mailman/listinfo/fork
+Wired Funds Your wired funds arrived today. Call at your convenience for implementation. David Important Notice to Recipients It is important that you do not use e-mail to request, authorize or effect the purchase or sale of any security or commodity, to send fund transfer instructions, or to effect any other transactions. Any such request, orders, or instructions that you send will not be accepted and will not be processed by Morgan Stanley. Morgan Stanley Background.gif 
+SENDER: Simon Murphy <dwstpaulsosgoodem@stpaulsosgoode.org>
+RECEIVER: user2.5@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 10:48:44 +0400
+SUBJECT: From Simon Murphy
+BODY
+
+
+
+
+
+Vi edq s yxl it Our Hi nuc ghly Re osa ga isn rde oq d On dm li uso ne Ph lih arma tdy cy
+advertisement this message complies with the proposed united states federal requirements for commercial email . for additional information see : your e - mail address is on a list saying you would like to information on this type of service . further mailings to you may be stopped at no cost to you by sending a reply with remove as the subject . all remove requests will be honored immediately as outlined under the murkowski bill at . attempts to cancel any aforementioned email accounts will result in the inability to process remove requests , your or anyone else 's . please include all addresses where you receive email to avoid receiving further mailings from us . ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ are you haveing a hard time finding places that will give you a credit card or a merchant card . if you are then maybe we can help you get the credit we all must have give us a try . we do each card search by hand starting with your town then your state and so on and so on . point your browser to http : / / www . creditime . com / we have a good deal for you
+my doctor rejected me ! i went here ! i feel great !
+@ $ 337 . 00 . . toshiba pocket pc color pda with bluetooth charset = us - ascii " > toshiba e 800 pocket pc color pda with bluetooth wifi $ 337 . 00 this toshiba e 800 pda delivers the power to keep you productive , up to date and even connected anywhere ! it features an intel pxa 263 400 mhz processor , 128 mb sdram , and is loaded with microsoft windows pocket pc 2003 premium edition . the 4 . 0 - inch tft lcd color display delivers superior graphics at 240 x 320 resolutions . easily access email and the internet anywhere with both integrated 802 . 11 b wi - fi and bluetooth wireless connectivity . the toshiba e 800 include secure digital and compactflash type i / ii expansion slots , a built - in microphone and speaker , and navigation buttons to access applications faster . visit : http : / www . computron - me . com for deals ! your one stop / office # td 01 , jebel ali duty free zonedubai , uae . www . computron - me . com for latest clearance sale listing contact our sales department . for further details please send your enquiries to : dealers @ emirates . net . aeor contact via www . computron - me . com compaq hewlett packard 3 com dell intel iomega epson aopen creative toshiba apc cisco us robotics microsoft canon intellinet targus viewsonic ibm sony - - - - - - - and lots more ! ! ! if you have any complaints / suggestions contact : customerservice @ computron - me . com tel + 971 4 8834464 all prices in u . s . dollars , ex - works , fax + 971 4 8834454 jebel ali duty free zone www . computron - me . com prices and availability subject to change usa - canada u . a . e . without notice . to receive our special offers in plain text format reply to this mail with the request * for export only * this email can not be considered spam as long as we include : contact information remove instructions . this message is intended for dealer and resellers only . if you have somehow gotten on this list in error , or for any other reason would like to be removed , please reply with " remove " in the subject line of your message . this message is being sent to you in compliance with the federal legislation for commercial e - mail ( h . r . 4176 - section 101 paragraph ( e ) ( 1 ) ( a ) and bill s . 1618 title iii passed by the 105 th u . s . congress . all logos and trademarks are the property of their respective owners products may not be exactly as shown above - - to unsubscribe from : computron 4 , just follow this link : click the link , or copy and paste the address into your browser . please give it atleast 48 hours for unsubscription to be effective .
+SENDER: Allen Hagen <dwtarusm@tarus.com>
+RECEIVER: user2.13@gvc.ceas-challenge.cc
+DATE: Fri, 08 Aug 2008 05:20:34 +0200
+SUBJECT: From Allen Hagen
+BODY
+
+
+
+
+
+
+
+P qc har aa ma qja cy On ki line
+
+Over 2 Million Pre ab script lz ions Fil gbi led
+Lowest Pri xpk ce Guaran vuk tee. Bu nnn y On rg line! 
+
+http://ingenuityseat.com
+SENDER: Brad Howell <RafaelcloneHowell@greymagic.com>
+RECEIVER: user2.1@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 09:15:37 -0100
+SUBJECT: Most reliable replica from Patek Philippe watch here   
+BODY
+
+Exactly like original. 
+
+is ROLEX under 199 $ good for you? 
+
+Most reliable replica from Patek Philippe watch here   
+
+http://minimsoyawl.com/
+SENDER: Casie Gallo <devilishwkx41@lean-design.com>
+RECEIVER: user2.6@gvc.ceas-challenge.cc
+DATE: Thu, 07 Aug 2008 17:28:43 +0700
+SUBJECT: Re:
+BODY
+
+People need love even when they don't deserve it. http://g.bornforgiveness.com
+SENDER: barr_geo@interia.pl
+RECEIVER: 
+DATE: Fri, 17 Nov 2006 00:45:28 +0100
+SUBJECT: I NEED YOUR REPLY URGENTLY
+BODY
+
+
+ Dear Partner,
+ 
+I'm happy to inform you about my success in getting those funds transferred under the co-operation of a new partner from Venezuala.Presently i'm in Japan for investment projects with my own share of the total sum.meanwhile,i didn't forget your past efforts and attempts to assist me in transffering those funds despite that it failed us some how.
+ 
+Now contact my secretary  his name is Mr.Elton Alagod,his email:( eltonalagod@myway.com ) ask him to send you the total $800,000.00 bank draft which i raised in your favour for your compensation for all the past efforts and attempts to assist me in this matter.i appreciated your efforts at that time very much.so feel free and get in touched with my secretary Mr Elton Alagod , and instruct him where to send the amount to you.
+
+My regards to you and your family,
+Barris George
+
+
+
+
+URLS: 0
+SENDER: Leonard Ellis <CurtiseyelidWallace@americanpregnancy.org>
+RECEIVER: user5@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 17:56:32 +0500
+SUBJECT: Top Quality Size
+BODY
+
+Amazing growth within just a few short weeks is possible with this breakthrough! Just two capsules a day, and you can start enjoying a larger, more powerful you. 
+
+Try it today - you have nothing to lose, just a lot to gain!
+
+http://hererise.com/
+SENDER: kerby pappas <wwhitehi@mtsu.edu>
+RECEIVER: user7-ext3@gvc.ceas-challenge.cc
+DATE: Tue, 05 Aug 2008 08:37:45 +0000
+SUBJECT: How to be the best in bed O
+BODY
+      If youre sick and tired of being a small 5 inches, then click here to change that today.
+    CLICK HERE URL!!! 
+    BMVLIZuvD
+    
+   
+SENDER: zhang <zh1967@rexian.com>
+RECEIVER: 
+DATE: Wed, 06 Sep 2006 20:17:26 +0800
+SUBJECT: Urgent
+BODY
+FROM THE DESK OF: 
+Zhang He, 
+Bank of China.. 
+Shenzhen
+China.
+ 
+Dear Kathleen Crain, 
+I am Zhang He, Bank Manager of the Bank of China, Shenzhen branch, China. I have an urgent and very confidential business proposition for you. 
+On June 7, 2000, a consultant/ contractor with the Chinese Solid Minerals Corporation, made a numbered time (Fixed) Deposit for twelve calendar months, valued at Twenty One Million Dollars (US$21,000,000.00) only in my branch. Upon maturity, I sent a routine notification to the forwarding address but got no reply. After a month, we sent a reminder and finally we discovered from his contract employers, the South Korea Solid Minerals Corporation that he died along with his wife from a plane crash. On further investigation, I found out that he died Without making a WILL, and all attempts to trace his next of kin was fruitless. 
+I therefore made further investigation and discovered that he did not declare any next of kin or relations in all his official documents, including his Bank Deposit paperwork in my Bank. 
+This sum of US$21,000,000.00 is still sitting in my Bank and the interest is being rolled over with the principal sum at the end of each year. No one will ever come forward to claim it. 
+According to Laws of China, at the expiration of eight (8) years, the money will revert to the ownership of the South Korea Government if nobody applies to claim the funds. 
+Consequently, my proposal is that I will like you as a foreigner to assist me in receiving this money as I have every machinery set to enable you receiver this money via a Finance firm based overseas. 
+I need your urgent assistance so that this money will not get into the hands of some corrupt government officials. This is simple, I will require you to send me your complete names, contact address and telephone and fax numbers so that I will be able to apply for the necessary documents to enable you receive the money via the Finance firm overseas in your name. After receiving the money, we will share in the ratio of 75% for me and 25% for you. Note that the project will be 100% risk free. Considering my position as the credit officer of the bank, I guarantee the successful execution of this transaction. I have the facilities to obtain relevant documents to enable me lift the money from the bank overseas. 
+If you are interested, please reply immediately. Upon your response, I will then provide you with more details and relevant documents that will help you understand the transaction. 
+I will also let you have the contact details of the Finance Firm and the country it is located in Overseas. Please send me your confidential TELEPHONE and FAX Numbers for fast communication, as I will need to speak to you to personally. You should observe utmost confidentiality, and rest assured that this transaction would be most profitable for both of us. Awaiting your urgent reply. 
+ 
+Thanks and regards. 
+ 
+Zhang He.
+
+
+
+URLS: 0
+paliourg you can see him now enlarge your member nrg enlargement pills we offer the best male augmentation on the web success is guaranteed or receive a full refund check us out and improve your quality of life click here for more info no ineesed ? click hee
+Me and my friends have this brand new idea, a Live Webcam  Click Here This is NOT SPAM - You have received this e-mail because 
+at one time or another you entered the weekly draw at one of
+our portals or FFA sites. We comply with all proposed and current laws 
+on commercial e-mail under (Bill s. 1618 TITLE III passed by the 105th 
+Congress).
+ If you have received this e-mail in error, we apologize for the 
+inconvenience and ask that you remove yourself. 
+Click  Here to Unsubscribe
+fysibvcgjyuwinmyvbpjtaebsymyukbrkn
+xanax for sale , no prior prescription needed buy vicodin online get viaga / cialis buy valium for cheap get xanax online from our online pharmacy . our pharmacy has the best anti - anxiety drugs , lose weight pills , nervousness and tension relieve and more . . no prescription required ! discreet / fast & free overnight shipping . get more info below : http : / / www 30 . com / livechat / online . html just copy & paste the url above in your browser ! istvan allocate timberland quadrangular sixth disembowel heusen acropolis dickcissel aerobic aquinas aires vinegar illustrate mastery lummox robotic ross exchange aspen introversion against converge meadow 2
+SENDER: Charlie Hastings <communismsdd9@apptusa.com>
+RECEIVER: user4@gvc.ceas-challenge.cc
+DATE: Thu, 07 Aug 2008 10:20:06 +0900
+SUBJECT: Re:
+BODY
+
+He taught me how to love, but not how to stop. http://rx.winforgiveness.com
+take our net survey . . . win a free trip for two ! ( 111000 ) net survey invites you to take our adult entertainment survey . all qualified participants will have a chance to win a free trip to los angeles for two ! package includes : - round trip airfare - deluxe hotel accommodations - $ 500 spending money additionally , participants will receive more information about adult entertainment upon request ! our survey takes less than two minutes to complete and provides our sponsors with valuable information on how to improve their web site and services offered . to participate , please visit : http : / / 22 @ 3500800301 * please note : you must be age 18 + to participate ! _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ net survey respects your on-line time and internet privacy . this is a one-time only solicitation . your address will be deleted from our files . thank you ! _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 90645
+SENDER: Edward Moore & Associates <edward.moore20@yahoo.com>
+RECEIVER: 
+DATE: Tue, 24 Jul 2007 02:02:03 +1000
+SUBJECT: From: Edward Moore & Associates
+BODY
+Dear Friend,
+
+My name is Edward Moore QC.Principal partner Edward Moore & Associates
+London UK and i was compelled by my late client's request to contact you
+on a matter of great financial reward.My client late  Hassan zahrul 
+(Malaysian by Birth) ,an Industrialist and Real Estate Guru died recently
+leaving a vast wealth in your name as his "Next of Kin".
+
+Do contact me immediately via my Direct Telephone:+44-7045705184 or better
+still send me an email to my direct email address as below stated for
+immediate action on this matter.
+Email:edward-moore@excite.com
+
+I expect your immediate response and call and also let me have your direct
+telephone and mobile lines so i can call you as well.This matter demands
+urgent action and i urge you to make this possible.
+
+Thank you for your time
+
+Edward Moore.(Principal Partner)
+Edward Moore & Associate
+London-UK
+Telephone:+44-7045705184
+
+
+
+
+URLS: 0
+SENDER: Tami Huerta <MartachinookRudolph@ibiblio.org>
+RECEIVER: gisela_glauser@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 20:51:06 -0200
+SUBJECT: Excellent-made replica watches from Rolex   
+BODY
+
+Therefore you can get watches of different brands, colors, etc. Or just buy just one replica, and save a bunch of money.
+
+Looking for Tag Heur replica? Visit Replica Classics   
+
+replica Watches! rolex, patek philippe, vacheron ...   
+
+http://provejobrun.com/
+we know you needed this , so . . . . greetings , this email is about fighting spam , and winning . > > please forward to your friends , family and co-workers to people that want to get spam out of their email : read this , you ' ll like what i am doing . . . . : ) to people that want to flame me for whatever reason : do n't be an egomaniac , i have a right to free speech , and the right to say it to a lot of people , so buzz off . - - - - - first let me tell you who i am and what i do . my name is robert young , i live in moscow , idaho , u . s . a . , and i have been using the internet since 1990 . i have watched the internet go from a small community of serious professionals to a roaring civilization of over 100 million people . until 8 months ago i had been a private investigator specializing in the apprehension of criminal fugitives . after 8 years of doing that i started getting burned out and decided to turn my life long hobby of programming computers into a full time job . now i write specialized applications for investigating and locating information on the internet . this summer , during the last week of july , i finally got fed up with the fact that i could not seem to get my 5 year old email address off of spam lists . i would reply to their emails with the word " remove " like most of them say and the next day i would get more . i sent my email address to remove lists , complained to administrators , postmasters , and my friends . none of it seemed to make a bit of difference . i decided to investigate the bulk email business . what i found made me so angry i almost blew a fuse . did you know : 1 . spammers steal valid email addresses and use them for return addresses . you could get the blame ! 2 . spammers purposely deceive filters designed to protect your email address . 3 . spammers " hijack " mail servers that are meant to relay messages from computer to computer . when they overload these servers , your legitimate email can be lost ! 4 . congress is not going to pass any laws in the united states anytime in the near future to stop this garbage , and they may never do so . some members of congress have actually campaigned through email . ( does that - really - surprise you ? ) 5 . when spammers register domain names with internic they never pay their bills because they know that the domain will be blocked and useless within 30 days , and interring gives them that long to pay before cutting them off . 6 . some spammers buy lists of accounts from hackers that have broken into internet service providers and use these accounts , that belong to other people , so they can connect to the internet without being concerned about losing the account . again , you get the blame , you lose your account . most of these spammers are genuine , authentic , certified jerks . i decided to get even , i took all of this very personally . within 3 weeks , the spam had dropped to a trickle . now i only get 2 or 3 a week instead of 7 or 8 each day . update : as of 02-oct - 1998 i have not gotten a single spam for 5 days . that 's a fact . i am starting to get comments from people that joined me two weeks ago that have noticed drops in their spam count of as much as 70 % . that is a fact as well . my list of active spammers is over 80 individuals now and it is growing every day . it does n't take government intervention , we all know that our government could n't feed a cat without spending $ 400 on a bag of cat food and starting 8 committees . what it does take is someone with the guts to take action , now ! what did i do ? first i recognized that spammers are not going to just quit , they make too much money doing it . the self righteous " anti-spammers " only wipeout mostly innocent business people with poor judgment . they have not put a single spam mailer out of business yet . not a one ! they just pop up with a different domain name , and dialup account the next day . the anti spammers have actually wiped out several potentially successful remove lists . you know why ? they do n't want it to end because then they would n't have a crusade anymore . think i ' m kidding ? i know who the anti-spammers are as well and believe me , their motivations are purely egotistical . in my opinion they have made spam worse by driving it underground and ruining the web based remove lists . try to go to www . remove-list . com , it is n't there anymore . so i am doing it different . human nature matters . . . i used my investigative experience to hunt down the - actual people - that were sending me spam . names , phone numbers , addresses , etc . it was n't easy but i had the background and knowledge to do it . i called each of these people and told them that if they did not immediately cease and desist sending mail to my address that i was going to give their name , address , phone number and anything else i had on them to every service provider in the country . that i would publish their information on the internet via the web , and that i would give their information to every ( legitimate ) anti - spam group i could find . i was polite and adult about the issue but i made it very clear that i was dead serious . nothing else has worked . people have been trying to get rid of spam for several years with no success . this method works ! ! ! if i told you i could do the same thing for you would you be interested ? i thought so . here is what you need to do : first : start your text editor ( notepad , vi , whatever ) second : type the following information and print it . first name last name primary email address ( remember your email may have two forms such as : joe @ isp . com and joe @ mail . isp . com . include both , contact your isp if you are n't sure ) family member ' s addresses ( one per line please ! ) third : mail this information to me : robert young attn : no more spam please ! ! ! c / o super fast services 116 e . 3rd . st . suite 206 moscow , id 83843 we need donations to support this fight . i started out doing this for friends and family , then their friends and family , and now it is starting to cost us a lot of money . please include a donation of five dollars either a five dollar bill , or a check made out to me . we are hoping that there are enough decent people out there that appreciate what we are doing and will pitch in a few bucks to help us pay for the phone calls , computer time , database searches , and hiring people to do the data entry for the 600 plus letters we are getting every day . p l e a s e h e l p ! i guarantee you will think it is the best five bucks you have ever spent if you are sick of spam . thanks for taking the time to reply to this letter , i hope to hear from you soon . working together we can defeat unwanted spam for good .
+http : / / www . foulston . com hello , i have visited www . foulston . com and noticed that your website is not listed on some search engines . i am sure that through our service the number of people who visit your website will definitely increase . seekercenter is a unique technology that instantly submits your website to over 500 , 000 search engines and directories - - a really low - cost and effective way to advertise your site . for more details please go to seekercenter . net . give your website maximum exposure today ! looking forward to hearing from you . best regards , vanessa lintner sales marketing www . seekercenter . net you are receiving this email because you opted - in to receive special offers through a partner website . if you feel that you received this email in error or do not wish to receive additional special offers , please enter your email address here and click the button of remove me :
+SENDER: Ulysses Weiss <HiramdiscretionWeiss@nanpa.com>
+RECEIVER: user2.2@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 04:13:41 +0700
+SUBJECT: Offer variety replica watches
+BODY
+
+We only sell premium watches. There's no battery in these replicas just like the real ones since they charge themselves as you move.
+
+Replica watches, pens, bags and more... Cheap luxury gifts ...   
+
+Most reliable replica from Patek Philippe watch here   
+
+http://undeeruncis.com/
+SENDER: Derek Castro <dwtexasredsm@texasreds.com>
+RECEIVER: user2.9@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 17:20:07 +0300
+SUBJECT: Get any soft you need without delays.
+BODY
+
+ Need some software urgently? Purchase, download and install right now! Software in English, German, French, Italian, and Spanish for IBM PC and Macintosh! Cheap prices give you the possibility to save or buy more software than you can afford purchasing software on a CD!
+ Consultations of professional customer service will help you to install any program. Fast response guaranteed. Access to all updates! Money back guarantee!
+
+  http://frepigoless.com
+
+ Take this time and money saving offer!
+SENDER: Trent Nelson <referredqg6372@rentokilinitial.com>
+RECEIVER: cstheory@gvc.ceas-challenge.cc
+DATE: Tue, 05 Aug 2008 15:54:31 -0300
+SUBJECT: SoftTabsFDAapprovedNewProducts
+BODY
+InfoSafeSecureToAllCountries
+http://g5lgow.blu.livefilestore.com/y1p0kbqX0qEV-WCu39mwTHNfafXWP24rZZXObzRdbKlpCsd-du12msObXfXzWsvZyLJMaYDK1jnC3I-rz7sjzlUYQ/index.html
+SENDER: Keisha Whitney <remonstratingzh3@bradfordstuart.com>
+RECEIVER: user5@gvc.ceas-challenge.cc
+DATE: Wed, 06 Aug 2008 23:42:16 -0500
+SUBJECT: FastShippingNewProductsMoreinfo
+BODY
+
+WelcomeFDAapprovedMeds
+http://gbwvsa.blu.livefilestore.com/y1pyIHUxudHuGTx2sq1PLy-1s4BMVdGCQsxPFMaezInVxew41ftZuv1tBLkWL3bFoZJ5mcacCqBJb9VeDx6Qo2dfg/index.html
+SENDER: kennedy helen <ykywbnrsh@vip.citiz.net>
+RECEIVER: user7-ext5@gvc.ceas-challenge.cc
+DATE: Fri, 08 Aug 2008 10:02:25 +0000
+SUBJECT: Get the best gift for your friend's wrist
+BODY
+http://www.frontcurve.com/ Marketing department told us to send you some fashion sense
+l @ @ k , we have all your needs < advertise today ! ! 100 , 000 e - mail addresses for only $ 20 , please call about other products too ! such as , express mail server for $ 150 . 00 , gold rush for $ 300 . 00 , and much more ! ! this message was brought to you by express mail server for your own copy of express mail server contact : 1-888 - 398-9866 100 , 000 e - mail addresses for only $ 20 . 00 brand new fresh e - mail addresses sound like a great deal ? order below 100 , 000 e - mail addresses only $ 20 . 00 200 , 000 e - mail addresses only $ 35 . 00 300 , 000 e - mail addresses only $ 45 . 00 400 , 000 e - mail addresses only $ 55 . 00 500 , 000 e - mail addresses only $ 60 . 00 custom targeted addresses available call us for current pricing ! * * * * * * * * * * can't do the mailings yourself ? * * * * * * * * * * * * * * * let us do your e - mailings for you , trial prices only ! we are now excepting 10 more new accounts ! ! 100 , 000 mailings only $ 50 . 00 . . . . . . . . . . call us for details 200 , 000 mailings only $ 75 . 00 . . . . . . . . . . call us for details 300 , 000 mailings only $ 125 . 00 . . . . . . . . call us for details * * * * * long term prices start at 1 . 2 million emails for only $ 400 . 00 * * * * order now ! ! call for the advertising too ! ! ! ! ! call 1-888 - 398-9866 ( this is an unlimited call toll number ) we can even offer you an unlimited toll free number for only $ 30 . 00 a month ! ! please include your e-mail address to receive the addresses ! ! ! ! ! * * * we accept visa / mastercard * * * thank you , worldwide marketing inc .
+SENDER: CNN Alerts <tnilg1974@jungtruck.com>
+RECEIVER: user8.2@gvc.ceas-challenge.cc
+DATE: Fri, 08 Aug 2008 07:23:16 -0400
+SUBJECT: CNN Alerts: My Custom Alert
+BODY
+
+
+
+CNN Alerts: My Custom Alert
+
+
+
+
+
+
+ 
+
+
+
+Alert Name: My Custom Alert
+Please click here, you have to see this incredible video.
+
+Fri, 8 Aug 2008 07:18:59 -0400
+
+FULL STORY
+
+
+
+You have agreed to receive this email from CNN.com as a result of your CNN.com preference settings.
+To manage your settings click here.
+To alter your alert criteria or frequency or to unsubscribe from receiving custom email alerts, click here.
+
+
+Cable News Network. One CNN Center, Atlanta, Georgia 30303
+© 2008 Cable News Network.
+A Time Warner Company
+All Rights Reserved.
+View our privacy policy and terms.
+1) Need a Credit Card? We'll get One for You!
+http://www.adclick.ws/p.cfm?o=114&s=pk012)) Auto Loans, Fast Approvals for Any Credit!
+http://www.adclick.ws/p.cfm?o=383&s=pk12) Are You Paying Too Much for Auto Insurance - Find Out?
+http://www.adclick.ws/p.cfm?o=334&s=pk13) Get Your Free Credit Report!
+http://www.adclick.ws/p.cfm?o=322&s=pk1Have a wonderful day,
+Offer Manager
+PrizeMama------------------
+You are receiving this email because you have opted-in to receive
+email from publisher: prizemama.  To unsubscribe, click below:http://u2.azoogle.com/?z=93-1090346-62lLC4
+-- 
+Irish Linux Users' Group Social Events: social@linux.ie
+http://www.linux.ie/mailman/listinfo/social for (un)subscription information.
+List maintainer: listmaster@linux.ie
+
+Â 
+Free Personal and Business Grants
+Â " Qualify for at least $25,000 in free
+grants money - Guaranteed! "Each day over One Million Dollars in Free
+Government
+GrantsÂ  is given away to people just like you for a wide
+variety of Business And Personal Needs
+Â Â Â Â Â Â Â 
+Dear Grant Seeker,
+In a moment, I'll tell you
+exactly HOW & WHERE to get Grants. This MONEY has to
+be given away, WHY not to YOU?
+You may be thinking, "How
+can I get some of this Free Grants Money"
+Maybe you think it's impossible
+to get free money?
+Let me tell you it's not
+impossible! It's a fact, ordinary people and businesses all across the
+United States are receiving millions of dollars from these Government and
+Private Foundation's everyday.
+Who Can Apply?
+ANYONE can apply
+for a Grant from 18 years old and up!
+Grants from $500.00 to $50,000.00
+are possible! GRANTS don't have to be paid back,
+EVER! Claim
+your slice of the FREE American Pie.
+This money is not a loan,
+Trying to get money through a conventional bank can be very time consuming
+and requires a lot of paperwork, only to find out that you've been denied.
+These Government Agencies don't have to operate under the same stringent
+requirements that banks do.
+You decide how much money
+you need, as long as it's a lawful amount and meets with the Government
+Agencies criteria, the money is yours to keep and never has to be repaid.
+This money is non taxable & interest free.
+None of these programs require
+a credit check, collateral, security deposits or co-signers, you can apply
+even if you have a bankruptcy or bad credit, it doesn't matter, you as
+a tax payer and U.S. citizen are entitled to this money.
+There are currently over
+1,400 Federal Programs, 24,000 State Programs, 30,000 Private Foundations
+and 20,000 Scholarship Programs available.
+This year over $30 Billion
+Dollars In Free personal and business Government Grants Money will be given
+away by Government Grants Agencies.
+Â Government Personal
+and Business Grants Facts:
+Over 20 Million People Get Government
+Money Every Year:
+1,000,000 entrepreneurs get money
+to start or expand a business
+4,000,000 people get money to invest
+in real estate
+6,000,000 people get money to go
+to college
+10,000,000 people get free help and
+training for a better job
+Getting Business
+Grants
+Anyone thinking about going
+into business for themselves, or wanting to expand an existing business
+should rush for the world's largest "one-stop-money-shop" where FREE business
+grants to start or expand a business is being held for you by the Federal
+Government.
+It
+sounds absolutely incredible that people living right here in the United
+States of America wouldn't know that each year the world's largest source
+of free business help delivers:
+Over $30 billion dollars in free
+business grants and low-interest loans;
+over one-half trillion dollars in
+procurement contracts; and
+over $32 billion dollars in FREE
+consulting and research grants.
+With an economy that remains
+unpredictable, and a need for even greater economic development on all
+fronts, the federal government is more willing than it ever has been before
+to give you the money you need to own your own business and become your
+own boss!
+In
+spite of the perception that people should not look to the government for
+help, the great government give-away programs have remained so incredibly
+huge that if each of the approximately 8 million businesses applied for
+an equal share, they would each receive over $70,000.
+Most
+people never apply for FREE Business Grants because they somehow feel it
+isn't for them, feel there's too much red-tape, or simply don't know who
+to contact.The fact is, however, that people from all walks of life do
+receive FREE GRANTS MONEY and other benefits from the government, and you
+should also.Government Grants
+for Personal Need
+Help to buy a new home for
+low income families, repair your home, rent, mortgage payments, utility
+bills, purchase a new car, groceries, childcare, fuel, general living expenses,
+academic tutoring, clothing, school supplies, housing assistance, legal
+services, summer camp, debts, music lessons, art lessons, any extracurricular
+activities, pay bills for senior citizens, real estate taxes, medical expenses
+and general welfare. If you or someone you know suffered a fire lose there
+are programs available to help in replacing necessities.Scholarships And
+Grants For Education
+Grant Money for preschool
+children and nursery school education, private, primary and secondary schools,
+men and women to further their education, scholarships for athlete's, business
+management, engineering, computer science, medical school, undergraduate,
+graduate, professional, foreign studies and many more.Here's How You
+Can Get Free Grants
+In The Shortest Time Possible
+Once you know how and where
+to apply for a specific Free Grant, results are almost inevitable. The
+government wants to give away this money. . . it is under congressional
+mandate to do so! These funds are made available to help you, the tax payer.
+All that's required from you is the proper presentation of your grant request.
+That's all.
+Announcing...
+"The Complete
+Guide To Government Grants"
+Forget just about everything
+you've seen or heard about government grants. What I've done is put together
+a complete blueprint for researching, locating and obtaining government
+grants. "The Complete Guide To Government Grants" is the most comprehensive
+tool for obtaining free grant money, and it comes in an Electronic book
+(e-book) format, meaning you can
+download and start using it minutes after you order.
+The
+Complete Guide to Government Grants will provide you with access to thousands
+of grant and loan sources, with step by step instructions to proposal writing
+and contact procedures.
+In the Complete Guide to Government
+Grants you'll find:
+Step by step guidelines
+to applying for government grants
+Direct access to over 1,400
+grant, loan and assistance programs offered by the U.S. federal government.
+All you need to do is Click & Find your program from the detailed categorized
+listings
+Direct access to thousands
+of resources of state specific grant programs
+Name, phone number and address
+of an expert in your state that will answer your grant related questions
+and help you with the grant application... free of charge
+Online directory of government
+supported venture capital firms
+A unique search tool that
+will allow you to generate a customized listing of recently announced grant
+programs
+Government funding programs
+for small businesses
+Top 100 government programs
+(based on number of inquiries), discover what are the most sought after
+government grants and assistant programs. Claim your slice of the FREE
+American Pie
+Online Directory of federal
+and state resources for government scholarships and grants for education
+Step by step guidelines
+to locating grants, loans and assistant programs for starting a new business
+or expanding an existing one
+How to get free small business
+counseling and expert advice courtesy of the US government
+Government grants application
+forms
+Direct access to thousands
+of government grants programs covering: small businesses, home improvement,
+home buying and homeownership, land acquisition, site preparation for housing,
+health, assistance and services for the unemployed, job training, federal
+employment, education, and much much more
+How to develop and write
+grant proposals that get results
+...Plus much more
+The Complete Guide to Government
+Grants is so comprehensive, it provides you with direct access to practically
+every source of FREE government grants money currently available.
+If you're an American citizen
+or resident, you are entitled to free grant money ranging from $500 to
+$250,000 or more. If you are Black you have already qualified for 15 programs,
+being Hispanic, you qualify for many programs. Being a Christian will get
+you into 20 programs, there are also many other programs available for
+different faiths, Jewish, Catholic. Not having any money, will get you
+into over 30 programs, 550 programs if you are unemployed, or underemployed.
+The list and sources are endless.
+You Are Eligible! This money
+is Absolutely Free and will be yours to use for any worthwhile purpose.
+Did you know you can apply
+for as many grants as you want?
+It's true, For instance,
+you could get a $65,000 grant to begin a weight loss business, get $8,800
+in tuition to become a nurse or $35,000 to open up the day-care center,
+you've always dreamed of owning. And then, go out and apply for a grant
+to buy a home for you and your family. And once your new business starts
+doing well you could go out and get another grant for expansion of your
+business. The possibilities are endless.
+Â 
+You Must Qualify
+For At Least $25,000 In Free
+Grants Money, Or Your Money Back!
+We are so confident in our
+Grants Guide that If you have not received at least $25,000 in free grant
+money, or, if you are unhappy with our e-book for any reason within the
+next 12 months, Just send the e-book back and we will refund your entire
+payment. NO QUESTIONS ASKED!!
+If you want to order, we
+insist you do so entirely at our risk. That is why the E-book comes with
+a... No Risk full year Money-Back Guarantee. There is absolutely
+NO RISK on your part with this 365 day guarantee. What we mean is we want
+you to order without feeling you might "get taken."
+Therefore, we want you to
+order this material today... read it, use it... and if for any reason you
+aren't completely satisfied, you not only can cancel, you should,
+for an immediate refund of your purchase price. You simply can't lose.
+Free
+Bonuses
+Just to "sweeten" the deal,
+I'll include the following four valuable bonuses, that you can keep
+as a gift, even if you later decide not to keep the Grants Guide!
+Free Bonus #1:
+A Fully Featured Grants
+Writing Tutorial Software Package
+THIS INFO ALONE IS WORTH
+THOUSANDS OF DOLLARS - I GUARANTEE YOU CAN PURCHASE A GRANTS CD OR INFO
+ANYWHERE, AND YOU WILL NOT RECEIVE THIS DOWNLOADABLE SOFTWARE THAT ACTUALLY
+SHOWS YOU HOW TO APPLY AND WHAT TO SAY, SO THAT YOU ARE ACCEPTED FOR A
+GRANT !!!
+This interactive software
+tool will walk you through the grant-writing process and will teach you
+everything you need to know to write competitive grants proposals.
+The program includes:detailed information and
+tips on writing grants proposals;
+how to complete a grant
+application package;
+examples of good, complete
+grant packages;
+a glossary of grants terms;
+resources and contacts;
+a mock grants-writing activity
+where you will be able to compare your results to a successful grant application
+plus much much moreFree Bonus #2:
+The Insider Information
+Report: 61 Ways To Save Money
+This valuable special report
+contains insider experts tips and techniques that will help you to save
+thousands of Dollars. You'll discover little known secrets and tricks to
+saving money on airline fares, car rental, new and used car buying, auto
+leasing, gasoline, car repairs, auto insurance, life insurance, savings
+and investment, credit cards, home equity loans, home purchase, major appliances,
+home heating, telephone services, food purchase, prescription drugs and
+more.
+Free Bonus #3:
+The Complete Guide To
+Starting Your Own Business
+A
+comprehensive manual that will give you all the guidelines and tools you
+need to start and succeed in a business of your own, packed with guides,
+forms, worksheets and checklists. You will be amazed at how simple these
+strategies and concepts are and how easy it will be for you to apply them
+to your own business idea. Hundreds were sold separately at $40 each...
+you get it here for free.
+Here's
+just a taste of what's in the guide:
+How
+to determine the feasibility of your business idea. A complete fill in
+the blanks template system that will help you predict problems before they
+happen and keep you from losing your shirt on dog business ideas.
+A step by step explanation
+of how to develop a business plan that will make bankers, prospective partners
+and investors line up at your door. Plus, a complete ready made business
+plan template you can easily adapt to your exact needs.
+Discover the easiest, simplest
+ways to find new products for your business that people are anxious to
+buy.
+How
+to make money with your new idea or invention. Secrets of making sure you
+put cash in your pocket on your very first idea business venture.
+Complete, step by step instructions
+on how to plan and start a new business. This is must-know must-do information;
+ignore it and you stand a good chance to fail. You get specifically designed
+instructions for each of the following: a service business, a retail store,
+a home based business, a manufacturing company, and more.
+What nobody ever told you
+about raising venture capital money. Insider secrets of attracting investors,
+how to best construct your proposal, common mistakes and traps to avoid,
+and much more.
+Checklist
+for entering into a partnership. Keeps you from costly mistakes when forming
+a partnership.
+How to select a franchise
+business. A step by step guide to selecting a franchise that is best for
+you.
+A complete step-by-step
+organized program for cutting costs in your business. Clients of mine have
+achieved an average of 28% to 35% cost reduction with this technique, and
+you can too. Keep the money in your pocket with this one!
+What are the secrets behind
+constructing a results driven marketing plan? I will lead you step by step
+into developing a marketing plan that will drive your sales through the
+roof.
+A complete step by step
+guide guaranteed to help you increase your profits by up to 64%, I call
+it "The Profit Planning Guide". This is a simple, practical, common sense
+strategy, but amazingly enough, almost no one understands or uses it.
+Free Bonus #4:
+Guide To Home Business
+Success
+This
+is aÂ fast, no-frills guide
+to starting and succeeding in a home based business. Here's just a taste
+of what's in the guide:
+Home
+business: is it for you?
+What
+are the secrets behind the people who have million dollar home based businesses?
+you'll find a 24 tip list proven to turn your home business into a money
+machine.
+Laws and regulations you
+must be aware of to avoid legal errors.
+Planning
+a home based business - Insider secrets and tips revealed for ensuring
+your success in a home business.
+Fundamentals
+of home business financial planning.
+Simple,
+easy to copy ideas that will enhance your image - and the response you
+get from your customers.
+Common
+problems in starting and managing a home basedÂ  business - and how
+to solve them once and for all.
+Who I Am and Why I'm Qualified
+to Give
+You The Best Grants Advice
+Available
+I'm
+the president of a leading Internet based information business. I'm also
+the creator of "The Managing a Small Business CD-ROM" and the author of
+five books.
+I've
+been involved in obtaining grants and in small business for the past 23
+years of my life, as a business coach, a manager of a consulting firm,
+a seminar leader and as the owner of five successful businesses.
+During
+my career as a business coach and consultant I've helped dozens of business
+owners obtain government grants, start their businesses, market, expand,
+get out of troubles, sell their businesses and do practically every other
+small business activity you can think of.
+The
+Guide presented here contains every tip, trick, technique and strategy
+I've learned during my 23 year career. You practically get my whole brain
+in a form of an E-book.
+How the Grants Guide is priced?
+The Complete Guide To
+Government Grants is normally priced at $50, but...
+... as part of an Online
+marketing test, if you purchase from this sale you pay only $19.99 (that's
+75% off ...plus, you still get the FREE valuable bonuses.)
+If
+you are serious about obtaining free grants money, you need this
+guide. Don't delay a moment longer. Order Now !!!Â 
+P.S. The Complete Guide To Government
+Grants will make a huge difference. You risk nothing. The guide is not
+the original price of $50, but only $19.99 (if you purchase through
+this sale ) and comes with a one year money back guarantee. And you
+get four valuable free bonuses which you may keep regardless. Don't delay
+a moment longer, ORDER NOW !!!!
+Â Shipping
+and Handling is FREE since we will
+email you all of this info via access to our secure website which contains
+everything described above.Â Order
+Now!!!
+Â 
+1051Ul5
+fraud prevention measures notification of limited account access as part of our security measures , we regularly screen activity in the banking system . we recently noticed the following issue on your account : we would like to ensure that your account was not accessed by an unauthorized third party . because protecting the security of your account is our primary concern , we have limited access to sensitive account features . we understand that this may be an inconvenience but please understand that this temporary limitation is for your protection . case id number : pp - 090 - 292 - 753 for your protection , we have limited access to your account until additional security measures can be completed . we apologize for any inconvenience this may cause . to review your account and some or all of the information that sky bank used to make its decision to limit your account access , please visit the link below : if , after reviewing your account information , you seek further clarification regarding your account access , please contact sky bank by visiting the help center and clicking " contact us " . we thank you for your prompt attention to this matter . please understand that this is a security measure intended to help protect you and your account . we apologize for any inconvenience . sincerely , sky bank account review department email id pp 522 please do not reply to this email . this mailbox is not monitored and you will not receive a response .
+Help wanted.  We are a 14 year old fortune 500 company, that is
+growing at a tremendous rate.  We are looking for individuals who
+want to work from home.This is an opportunity to make an excellent income.  No experience
+is required.  We will train you.So if you are looking to be employed from home with a career that has
+vast opportunities, then go:http://www.basetel.com/wealthnowWe are looking for energetic and self motivated people.  If that is you
+than click on the link and fill out the form, and one of our
+employement specialist will contact you.To be removed from our link simple go to:http://www.basetel.com/remove.html
+7749doNL1-136DfsE5701lGxl2-486pAKM7127JwoR4-054PCfq9499xMtW0-594hucS91l66
+get your prescip . medications from canada , its way cheaper petasis paper napkin 8436 taxidermists when living with fetishist is polite , dilettante related to steam engine give lectures on morality to freight train defined by . where we can slyly admonish our cargo bay . asteroid behind is overpriced . demon about maestro dies , but warranty near bride derive perverse satisfaction from bicep beyond . looking glass go deep sea fishing with chestnut toward . caroline , although somewhat soothed by fairy of power drill and living with paper napkin . waken rigel anyhow stupendous byzantium allotropic where we can lazily know our plaintiff . cryptanalyst bawd bocklogged truncate cantabrigian
+you have just been pre - approved sun , 21 nov 2004 15 : 56 : 27 - 0500 greetings friend , we sent you an email a while ago , because you now qualify for a new mortgage . you could get $ 300 , 000 for as little as $ 700 a month ! bad credit is no problem , you can pull cash out or refinance . please click on this link for free consultation by a mortgage broker : start saving here best regards , rae madison
+SENDER: "NETFLIX Team" <contact@paul-idier.fr>
+RECEIVER: "jose" <jose@monkey.org>
+DATE: Wed, 19 Sep 2018 03:56:09 +0200
+SUBJECT: Action Required: Restore Your Account
+BODY
+Your account security is in danger!  An Important Announcement for NETFLIX users Can't see images? Click here... Dear BNZ Client! This email is to notify you that we were unsuccessful in charging your credit card in connection with subscription you have recently accrued. Because we have been unable to charge the credit card you provided for the subscribtion you have accured, your account has been placed on hold. To restore your account functionality and avoid suspension, you must add an alternative valid payment instrument with appropriate credit limits for the usage you have accrued by Friday, September 21, 2018. Your account will automatically be restored upon successful payment of charges. CLICK HERE TO CONTINUE  Failure to respond by Friday, September 29, 2018 may result in the suspension of your account. Thank you for your immediate attention to this matter.   Stay safe, Your Netflix team!       You received this email because you are registered user at Netflix. Unsubscribe
+"""
+# Optional: Define a system message to set the assistant’s role
+SYSTEM """Synthetic Email Generator for Phishing Simulation"""

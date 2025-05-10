@@ -59,8 +59,8 @@ def main():
     # --- Load and Prepare Dataset ---
     try:
         # Define paths to ham and spam JSON files
-        ham_path = "datasets/combined_ham.json"
-        spam_path = "datasets/combined_spam.json"
+        ham_path = "../datasets/iteration_2/combined_ham_converted.json"
+        spam_path = "../datasets/iteration_2/combined_spam_converted.json"
 
         print(f"Loading ham data from {ham_path} and spam data from {spam_path}...")
         from data.preparation import combineandload_spamandham
@@ -77,11 +77,12 @@ def main():
     # --- Instantiate Model ---
     print("Instantiating the custom Transformer model...")
     model = TransformerForSequenceClassification(config)
-    
     # Wrap model with DataParallel if multiple GPUs are available
     if num_gpus > 1:
         print(f"Using DataParallel across {num_gpus} GPUs")
         model = nn.DataParallel(model)
+    # if hasattr(torch, 'compile') and torch.__version__ >= '2.0.0':
+    #     model = torch.compile(model)
         
     model.to(device)
 

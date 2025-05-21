@@ -20,7 +20,9 @@ def scaled_dot_product_attention(query, key, value):
     dim_k = key.size(-1)
     scores = torch.bmm(query, key.transpose(1, 2)) / sqrt(dim_k)
     weights = F.softmax(scores, dim=-1)
-    return torch.bmm(weights, value)
+    att_mat = weights.detach().cpu().numpy()
+    return torch.bmm(weights, value), att_mat
+    
 
 
 class AttentionHead(nn.Module):
@@ -39,6 +41,7 @@ class AttentionHead(nn.Module):
         self.q = nn.Linear(embed_dim, head_dim)
         self.k = nn.Linear(embed_dim, head_dim)
         self.v = nn.Linear(embed_dim, head_dim)
+        self.att_mat = None
 
     def forward(self, hidden_state):
         """
@@ -51,9 +54,10 @@ class AttentionHead(nn.Module):
             torch.Tensor: Output tensor after applying scaled dot product attention of shape (batch_size, seq_len, head_dim).
 
         """
-        attn_outputs = scaled_dot_product_attention(
+        attn_outputs, attn_mat = scaled_dot_product_attention(
             self.q(hidden_state), self.k(hidden_state), self.v(hidden_state)
         )
+        self.att_mat = attn_mat
         return attn_outputs
 
 
@@ -78,11 +82,13 @@ class MultiHeadAttention(nn.Module):
                 f"embed_dim ({embed_dim}) must be divisible by num_heads ({num_heads})"
             )
 
+        
         self.heads = nn.ModuleList(
             [
                 AttentionHead(embed_dim, head_dim) for _ in range(num_heads)
             ]  # Create num_heads attention heads
         )
+        self.att_mats = [i.att_mat for i in self.heads]
         # Linear layer to project the concatenated outputs back to embed_dim
         self.output_linear = nn.Linear(
             embed_dim, embed_dim
@@ -105,6 +111,7 @@ class MultiHeadAttention(nn.Module):
 
         """
         # Concatenate outputs from all heads along the feature dimension
+    
         concatenated_output = torch.cat([h(hidden_state) for h in self.heads], dim=-1)
         # Apply the final linear layer
         concatenated_output = self.output_linear(concatenated_output)

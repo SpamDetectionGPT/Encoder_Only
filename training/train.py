@@ -5,6 +5,9 @@ import torch.optim as optim
 from transformers import AutoConfig, AutoTokenizer
 from tqdm.auto import tqdm  # For progress bars
 import os  # For saving model
+import wandb
+import time
+from dotenv import load_dotenv
 
 # Import from local modules
 from models import TransformerForSequenceClassification
@@ -12,8 +15,9 @@ from utils.helpers import (
     parse_train_args,
     get_device,
 )  # Import argument parser and device helper
-from data.preparation import prepare_data  # Import data preparation function
+from data.preparation import prepare_data, load_separate_train_test_data  # Import data preparation function
 
+load_dotenv()
 
 # --- Device Detection Function ---
 def get_device():
@@ -31,6 +35,20 @@ def main():
     args = parse_train_args()  # Use the imported argument parser
     device = get_device()  # Use the imported device helper
     print(f"Using device: {device}")
+    
+    # Initialize wandb
+    wandb.init(
+        project="spam-classification",
+        config={
+            "model": args.model_ckpt,
+            "num_labels": args.num_labels,
+            "max_length": args.max_length,
+            "batch_size": args.batch_size,
+            "epochs": args.epochs,
+            "learning_rate": args.lr,
+            "device": str(device)
+        }
+    )
     
     # Check if multiple GPUs are available
     if torch.cuda.is_available():
@@ -58,14 +76,19 @@ def main():
 
     # --- Load and Prepare Dataset ---
     try:
-        # Define paths to ham and spam JSON files
-        ham_path = "../datasets/iteration_2/combined_ham_converted.json"
-        spam_path = "../datasets/iteration_2/combined_spam_converted.json"
+        # Define paths to train and test JSON files
+        train_ham_path = "data/train_data_ham.json"
+        train_spam_path = "data/train_data_spam.json"
+        test_ham_path = "data/test_data_ham.json"
+        test_spam_path = "data/test_data_spam.json"
 
-        print(f"Loading ham data from {ham_path} and spam data from {spam_path}...")
-        from data.preparation import combineandload_spamandham
-
-        dataset = combineandload_spamandham(ham_path, spam_path)
+        print(f"Loading training and test data from separate files...")
+        dataset = load_separate_train_test_data(
+            train_ham_path=train_ham_path,
+            train_spam_path=train_spam_path,
+            test_ham_path=test_ham_path,
+            test_spam_path=test_spam_path
+        )
 
         # Prepare data using the loaded dataset
         train_dataloader, eval_dataloader = prepare_data(args, tokenizer, dataset)
@@ -114,13 +137,11 @@ def main():
         total_loss = 0
         for batch_idx, batch in enumerate(train_dataloader):
             # Move batch to device
-            # Filter batch to only include keys the model expects in its forward pass
-            # Currently, our model only needs 'input_ids'. Labels are needed for loss.
             input_ids = batch["input_ids"].to(device)
             labels = batch["labels"].to(device)
 
             # Forward pass
-            outputs = model(input_ids=input_ids)  # Pass only input_ids
+            outputs = model(input_ids=input_ids)
             loss = loss_fn(outputs, labels)
 
             # Backward pass and optimization
@@ -132,6 +153,13 @@ def main():
             global_step += 1
             progress_bar.update(1)
             progress_bar.set_postfix({"Epoch": epoch + 1, "Loss": loss.item()})
+            
+            # Log batch metrics to wandb
+            wandb.log({
+                "train/batch_loss": loss.item(),
+                "train/learning_rate": optimizer.param_groups[0]['lr'],
+                "train/global_step": global_step
+            })
             
             # Save periodic checkpoint (regardless of performance)
             if global_step % checkpoint_freq == 0:
@@ -177,7 +205,7 @@ def main():
                     loss = loss_fn(outputs, labels)
                     total_eval_loss += loss.item()
 
-                    # Calculate accuracy (example metric)
+                    # Calculate accuracy
                     logits = outputs
                     predictions = torch.argmax(logits, dim=-1)
                     correct_predictions += (predictions == labels).sum().item()
@@ -192,6 +220,14 @@ def main():
             print(
                 f"Validation Loss: {avg_eval_loss:.4f} - Validation Accuracy: {accuracy:.4f}"
             )
+            
+            # Log epoch metrics to wandb
+            wandb.log({
+                "epoch": epoch + 1,
+                "train/epoch_loss": avg_train_loss,
+                "val/loss": avg_eval_loss,
+                "val/accuracy": accuracy
+            })
             
             # Save the best model based on validation accuracy
             if accuracy > best_accuracy:
@@ -215,6 +251,12 @@ def main():
                     "loss": avg_eval_loss,
                 }
                 torch.save(checkpoint, best_checkpoint_path)
+                
+                # Log best model metrics to wandb
+                wandb.log({
+                    "best/accuracy": best_accuracy,
+                    "best/val_loss": avg_eval_loss
+                })
                 
             model.train()  # Set back to train mode for next epoch
         else:
@@ -248,10 +290,19 @@ def main():
         tokenizer.save_pretrained(output_dir)
         
         print(f"Training finished. Best validation accuracy: {best_accuracy:.4f}")
+        
+        # Log final metrics to wandb
+        wandb.log({
+            "final/best_accuracy": best_accuracy,
+            "final/epochs_completed": args.epochs,
+            "final/total_steps": global_step
+        })
+        
     except Exception as e:
         print(f"Error saving model/config/tokenizer: {e}")
 
     print("Training finished.")
+    wandb.finish()  # Properly close the wandb run
 
 
 if __name__ == "__main__":

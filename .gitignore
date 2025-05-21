@@ -3,9 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+output/
+wandb/
 # C extensions
 *.so
-
+*.json
 # Distribution / packaging
 .Python
 build/
@@ -172,3 +174,4 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+cached_datasets/

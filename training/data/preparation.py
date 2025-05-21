@@ -9,8 +9,58 @@ import os
 
 # --- Dataset Loading and Tokenization ---
 
+def load_json_data(file_path):
+    """Helper function to load data from a JSON file."""
+    with open(file_path, "r") as file:
+        data = json.load(file)
+    return data["dataset"]
 
+def load_separate_train_test_data(train_ham_path, train_spam_path, test_ham_path, test_spam_path):
+    """Load and combine separate train and test data files."""
+    # Load training data
+    train_ham_data = load_json_data(train_ham_path)
+    train_spam_data = load_json_data(train_spam_path)
+    
+    # Load test data
+    test_ham_data = load_json_data(test_ham_path)
+    test_spam_data = load_json_data(test_spam_path)
+    
+    # Combine training data
+    train_texts = []
+    train_labels = []
+    for item in train_ham_data:
+        train_texts.append(item["text"])
+        train_labels.append(0)
+    for item in train_spam_data:
+        train_texts.append(item["text"])
+        train_labels.append(1)
+    
+    # Combine test data
+    test_texts = []
+    test_labels = []
+    for item in test_ham_data:
+        test_texts.append(item["text"])
+        test_labels.append(0)
+    for item in test_spam_data:
+        test_texts.append(item["text"])
+        test_labels.append(1)
+    
+    # Create DataFrames
+    train_df = pd.DataFrame({"text": train_texts, "label": train_labels})
+    test_df = pd.DataFrame({"text": test_texts, "label": test_labels})
+    
+    # Convert to Dataset objects
+    train_dataset = Dataset.from_pandas(train_df)
+    test_dataset = Dataset.from_pandas(test_df)
+    
+    # Create a DatasetDict
+    dataset_dict = DatasetDict({"train": train_dataset, "test": test_dataset})
+    
+    return dataset_dict
+
+# Keep the old function for backward compatibility
 def combineandload_spamandham(ham_path, spam_path, test_size=0.2, random_state=42):
+    """Legacy function for backward compatibility."""
     with open(ham_path, "r") as file:
         ham_data = json.load(file)
     with open(spam_path, "r") as file:
@@ -19,10 +69,11 @@ def combineandload_spamandham(ham_path, spam_path, test_size=0.2, random_state=4
     texts = []
     labels = []
 
-    for item in ham_data:
+    # Extract texts from the dataset array
+    for item in ham_data["dataset"]:
         texts.append(item["text"])
         labels.append(0)
-    for item in spam_data:
+    for item in spam_data["dataset"]:
         texts.append(item["text"])
         labels.append(1)
 

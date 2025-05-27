@@ -22,7 +22,6 @@ def scaled_dot_product_attention(query, key, value):
     weights = F.softmax(scores, dim=-1)
     att_mat = weights.detach().cpu().numpy()
     return torch.bmm(weights, value), att_mat
-    
 
 
 class AttentionHead(nn.Module):
@@ -82,7 +81,6 @@ class MultiHeadAttention(nn.Module):
                 f"embed_dim ({embed_dim}) must be divisible by num_heads ({num_heads})"
             )
 
-        
         self.heads = nn.ModuleList(
             [
                 AttentionHead(embed_dim, head_dim) for _ in range(num_heads)
@@ -111,7 +109,7 @@ class MultiHeadAttention(nn.Module):
 
         """
         # Concatenate outputs from all heads along the feature dimension
-    
+
         concatenated_output = torch.cat([h(hidden_state) for h in self.heads], dim=-1)
         # Apply the final linear layer
         concatenated_output = self.output_linear(concatenated_output)
@@ -240,6 +238,118 @@ class Embeddings(nn.Module):
     into dense vectors of fixed size. The token embeddings and position embeddings are summed up
     and subsequently layer-normalized and passed through a dropout layer for regularization.
 
+    Token Embedding Table (30,522 × 768)
+                        Hidden Size (768 columns)
+                    ┌─────────────────────────────┐
+    Token ID 0       │ 0.1  -0.3   0.8  ...  0.2  │
+    Token ID 1       │ -0.2  0.5   0.1  ...  -0.4 │
+    Token ID 2       │ 0.7   0.0  -0.6  ...  0.9  │
+    ...              │ ...   ...   ...  ...  ...  │
+    Token ID 16078   │ 0.3  -0.1   0.4  ...  0.7  │ ← "Congratulations"
+    ...              │ ...   ...   ...  ...  ...  │
+    Token ID 30521   │ -0.5  0.8   0.2  ...  -0.1 │
+                    └─────────────────────────────┘
+
+    Embedding Table (Fixed Size):
+    vocab_size × hidden_size = 30,522 × 768
+
+    Token ID 0    │ [features...] │ ← 768 values
+    Token ID 1    │ [features...] │
+    ...           │ ...           │
+    Token ID 101  │ [features...] │ ← Lookup for token 101
+    ...           │ ...           │
+    Token ID 2023 │ [features...] │ ← Lookup for token 2023
+    ...           │ ...           │
+    Token ID 30521│ [features...] │
+
+    Input (Variable Size):
+    batch_size × seq_length = 2 × 3
+
+    Batch 1: [101, 2023, 2003]  ← 3 tokens to look up
+    Batch 2: [101, 7592, 2088]  ← 3 tokens to look up
+
+    ## The Complete Conversion Process: Sparse Token IDs → Dense Vectors
+
+    The embedding layer serves as a bridge between discrete tokens (what tokenizers produce)
+    and continuous vectors (what neural networks need). It essentially uses lookup tables to
+    convert sparse token IDs into rich, dense representations.
+
+    ### Step 1: Tokenizer Output (Input to Embeddings)
+    ```
+    text = "Hello world"
+    input_ids = [101, 7592, 2088, 102]  # Sparse integers from tokenizer
+    input_ids.shape = (batch_size, seq_length)  # e.g., (1, 4)
+    ```
+
+    ### Step 2: Token Embedding Lookup
+    ```
+    self.token_embeddings = nn.Embedding(vocab_size, hidden_size)
+    # With BERT-base-uncased: nn.Embedding(30522, 768)
+    # Creates a lookup table: 30,522 rows × 768 columns
+
+    Token ID 101  → Row 101  → [0.1, -0.2, 0.8, ..., 0.3]  (768 values)
+    Token ID 7592 → Row 7592 → [0.5,  0.1, -0.4, ..., 0.7]  (768 values)
+    Token ID 2088 → Row 2088 → [-0.1, 0.9, 0.2, ..., -0.5] (768 values)
+    Token ID 102  → Row 102  → [0.8, -0.4, 0.1, ..., 0.9]  (768 values)
+
+    Result: token_embeddings.shape = (batch_size, seq_length, hidden_size)
+    ```
+
+    ### Step 3: Position Embedding Lookup
+    ```
+    position_ids = [0, 1, 2, 3]  # Created dynamically based on seq_length
+    self.position_embeddings = nn.Embedding(max_position_embeddings, hidden_size)
+    # With BERT-base-uncased: nn.Embedding(512, 768)
+
+    Position 0 → Row 0 → [0.2,  0.9, -0.1, ..., 0.4]  (768 values)
+    Position 1 → Row 1 → [-0.3, 0.6,  0.7, ..., -0.2] (768 values)
+    Position 2 → Row 2 → [0.8, -0.4,  0.1, ..., 0.9]  (768 values)
+    Position 3 → Row 3 → [0.1,  0.5, -0.8, ..., 0.6]  (768 values)
+
+    Result: position_embeddings.shape = (1, seq_length, hidden_size)
+    ```
+
+    ### Step 4: Element-wise Addition + Normalization
+    ```
+    embeddings = token_embeddings + position_embeddings  # Broadcasting
+    embeddings = layer_norm(embeddings)
+    embeddings = dropout(embeddings)
+
+    Final shape: (batch_size, seq_length, hidden_size)
+    ```
+
+    ## Key Dimensions (BERT-base-uncased defaults):
+
+    | Parameter | Value | What It Represents |
+    |-----------|-------|-------------------|
+    | `vocab_size` | 30,522 | Total unique tokens the model knows |
+    | `hidden_size` | 768 | Features per token (fixed architecture choice) |
+    | `max_position_embeddings` | 512 | Maximum sequence length allowed |
+    | `seq_length` | Variable | Number of tokens in current input |
+
+    ## Embedding Table Sizes:
+    - **Token Embedding Table**: (30,522 × 768) = 23,440,896 parameters
+    - **Position Embedding Table**: (512 × 768) = 393,216 parameters
+
+    ## Output Size Examples:
+    ```
+    # Short text: "Hello"
+    input_ids.shape = (1, 1) → embeddings.shape = (1, 1, 768)
+
+    # Medium text: 50 tokens
+    input_ids.shape = (1, 50) → embeddings.shape = (1, 50, 768)
+
+    # Batch processing: 8 sequences of 100 tokens each
+    input_ids.shape = (8, 100) → embeddings.shape = (8, 100, 768)
+    ```
+
+    ## Why This Design Works:
+    1. **Efficient**: O(1) lookup time - just indexing into tables
+    2. **Learnable**: Each token learns its own 768-dimensional representation
+    3. **Flexible**: Handles any sequence length up to max_position_embeddings
+    4. **Dense**: Rich 768-dimensional representations vs sparse token IDs
+    5. **Semantic**: Similar tokens learn similar vector representations
+
     Parameters
     ----------
     config : object
@@ -292,19 +402,44 @@ class Embeddings(nn.Module):
         embeddings : torch.Tensor
             The output tensor after passing through the Embeddings layer (shape: batch_size, seq_length, hidden_size).
         """
+        # Extract sequence length from input shape
+        # input_ids.shape = (batch_size, seq_length)
         seq_length = input_ids.size(1)
+
         # Create position IDs dynamically based on input sequence length
-        # Ensure position_ids are on the same device as input_ids
+        # position_ids will be [0, 1, 2, ..., seq_length-1]
+        # unsqueeze(0) adds batch dimension: shape becomes (1, seq_length)
+        # This allows broadcasting when adding to token_embeddings
         position_ids = torch.arange(
             seq_length, dtype=torch.long, device=input_ids.device
         ).unsqueeze(0)
 
+        # LOOKUP PROCESS: Convert sparse token IDs to dense vectors
+        # Token embedding lookup: each token ID → 768-dimensional vector
+        # input_ids shape: (batch_size, seq_length)
+        # token_embeddings shape: (batch_size, seq_length, hidden_size)
         token_embeddings = self.token_embeddings(input_ids)
+
+        # Position embedding lookup: each position → 768-dimensional vector
+        # position_ids shape: (1, seq_length)
+        # position_embeddings shape: (1, seq_length, hidden_size)
         position_embeddings = self.position_embeddings(position_ids)
 
+        # Element-wise addition: combine token and position information
+        # Broadcasting: (batch_size, seq_length, hidden_size) + (1, seq_length, hidden_size)
+        # Result: (batch_size, seq_length, hidden_size)
         embeddings = token_embeddings + position_embeddings
+
+        # Apply layer normalization for training stability
         embeddings = self.layer_norm(embeddings)
+
+        # Apply dropout for regularization
         embeddings = self.dropout(embeddings)
+
+        # Final output: (batch_size, seq_length, hidden_size)
+        # Each token now has a rich 768-dimensional representation that includes:
+        # 1. Token semantic information (from token_embeddings)
+        # 2. Positional information (from position_embeddings)
         return embeddings
 
 

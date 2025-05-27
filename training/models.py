@@ -6,37 +6,45 @@ from math import sqrt
 
 def scaled_dot_product_attention(query, key, value):
     """
-    Compute scaled dot product attention.
+    Compute scaled dot product attention: Attention(Q,K,V) = softmax(QK^T/√d_k)V
 
     Args:
-        query (torch.Tensor): Query tensor of shape (batch_size, seq_len_q, dim_q).
-        key (torch.Tensor): Key tensor of shape (batch_size, seq_len_k, dim_k).
-        value (torch.Tensor): Value tensor of shape (batch_size, seq_len_v, dim_v).
+        query (torch.Tensor): Query tensor of shape (batch_size, seq_len_q, 64).
+        key (torch.Tensor): Key tensor of shape (batch_size, seq_len_k, 64).
+        value (torch.Tensor): Value tensor of shape (batch_size, seq_len_v, 64).
 
     Returns:
-        torch.Tensor: Output tensor after applying scaled dot product attention of shape (batch_size, seq_len_q, dim_v).
-
+        torch.Tensor: Attention output of shape (batch_size, seq_len_q, 64).
+        numpy.ndarray: Attention matrix for visualization.
     """
-    dim_k = key.size(-1)
+    # Compute attention scores and scale by sqrt(d_k)
+    dim_k = key.size(-1)  # 64 for BERT-base
     scores = torch.bmm(query, key.transpose(1, 2)) / sqrt(dim_k)
+
+    # Apply softmax to get attention weights
     weights = F.softmax(scores, dim=-1)
+
+    # Save attention matrix for visualization
     att_mat = weights.detach().cpu().numpy()
+
+    # Apply attention weights to values
     return torch.bmm(weights, value), att_mat
 
 
 class AttentionHead(nn.Module):
     """
-    Attention head module for the Transformer model. Encapsulates the operations required to compute attention
-    within a single attention head of the Transformer model.
+    Single attention head with Q, K, V projections and scaled dot-product attention.
+
+    Transforms input (768-dim) to Q, K, V (64-dim each) and computes attention.
 
     Args:
-        embed_dim (int): Dimensionality of the input embeddings.
-        head_dim (int): Dimensionality of the attention head.
-
+        embed_dim (int): Input embedding dimension (768 for BERT-base).
+        head_dim (int): Head dimension (64 for BERT-base).
     """
 
     def __init__(self, embed_dim, head_dim):
         super().__init__()
+        # Linear projections: 768 → 64 for BERT-base
         self.q = nn.Linear(embed_dim, head_dim)
         self.k = nn.Linear(embed_dim, head_dim)
         self.v = nn.Linear(embed_dim, head_dim)
@@ -44,126 +52,104 @@ class AttentionHead(nn.Module):
 
     def forward(self, hidden_state):
         """
-        Perform forward pass through the attention head.
+        Forward pass through attention head.
 
         Args:
-            hidden_state (torch.Tensor): Input tensor of shape (batch_size, seq_len, embed_dim).
+            hidden_state (torch.Tensor): Input of shape (batch_size, seq_len, 768).
 
         Returns:
-            torch.Tensor: Output tensor after applying scaled dot product attention of shape (batch_size, seq_len, head_dim).
-
+            torch.Tensor: Attention output of shape (batch_size, seq_len, 64).
         """
-        attn_outputs, attn_mat = scaled_dot_product_attention(
-            self.q(hidden_state), self.k(hidden_state), self.v(hidden_state)
-        )
+        # Apply Q, K, V projections
+        query = self.q(hidden_state)
+        key = self.k(hidden_state)
+        value = self.v(hidden_state)
+
+        # Compute attention
+        attn_outputs, attn_mat = scaled_dot_product_attention(query, key, value)
         self.att_mat = attn_mat
+
         return attn_outputs
 
 
 class MultiHeadAttention(nn.Module):
     """
-    Multi-head attention module for the Transformer model. Combines the outputs of multiple attention heads
-    and applies a linear transformation to produce the final output of the attention mechanism in the Transformer model.
+    Multi-head attention with 12 parallel attention heads (BERT-base).
+
+    Each head processes 768→64 dims, outputs are concatenated and projected back to 768.
 
     Args:
-        config (object): Configuration object containing model parameters.
-
+        config: Configuration with hidden_size=768, num_attention_heads=12.
     """
 
     def __init__(self, config):
         super().__init__()
-        embed_dim = config.hidden_size
-        num_heads = config.num_attention_heads
-        head_dim = embed_dim // num_heads  # Ensure integer division for head dimension
+        embed_dim = config.hidden_size  # 768
+        num_heads = config.num_attention_heads  # 12
+        head_dim = embed_dim // num_heads  # 64
 
         if embed_dim % num_heads != 0:
             raise ValueError(
                 f"embed_dim ({embed_dim}) must be divisible by num_heads ({num_heads})"
             )
 
+        # Create 12 attention heads
         self.heads = nn.ModuleList(
-            [
-                AttentionHead(embed_dim, head_dim) for _ in range(num_heads)
-            ]  # Create num_heads attention heads
+            [AttentionHead(embed_dim, head_dim) for _ in range(num_heads)]
         )
         self.att_mats = [i.att_mat for i in self.heads]
-        # Linear layer to project the concatenated outputs back to embed_dim
-        self.output_linear = nn.Linear(
-            embed_dim, embed_dim
-        )  # Input dimension is num_heads * head_dim which equals embed_dim
+
+        # Output projection: 768 → 768
+        self.output_linear = nn.Linear(embed_dim, embed_dim)
 
     def forward(self, hidden_state):
         """
-        Perform forward pass through the multi-head attention module.
-
-        For each attention head, the input tensor is passed through the corresponding AttentionHead instance,
-        and the outputs are concatenated along the last dimension. The concatenated output is then passed
-        through the output_linear layer to obtain the final output tensor.
+        Forward pass through multi-head attention.
 
         Args:
-            hidden_state (torch.Tensor): Input tensor of shape (batch_size, seq_len, embed_dim).
+            hidden_state (torch.Tensor): Input of shape (batch_size, seq_len, 768).
 
         Returns:
-            torch.Tensor: Output tensor after applying multi-head attention and linear transformation
-                of shape (batch_size, seq_len, embed_dim).
-
+            torch.Tensor: Output of shape (batch_size, seq_len, 768).
         """
-        # Concatenate outputs from all heads along the feature dimension
+        # Process through all heads in parallel
+        head_outputs = [h(hidden_state) for h in self.heads]
 
-        concatenated_output = torch.cat([h(hidden_state) for h in self.heads], dim=-1)
-        # Apply the final linear layer
-        concatenated_output = self.output_linear(concatenated_output)
-        return concatenated_output
+        # Concatenate: 12×64 = 768
+        concatenated_output = torch.cat(head_outputs, dim=-1)
+
+        # Final projection
+        return self.output_linear(concatenated_output)
 
 
 class FeedForward(nn.Module):
     """
-    This class implements the Feed Forward neural network layer within the Transformer model.
+    Position-wise feed-forward network: 768 → 3072 → 768 with GELU activation.
 
-    Feed Forward layer is a crucial part of the Transformer's architecture, responsible for the actual
-    transformation of the input data. It consists of two linear layers with a GELU activation function
-    in between, followed by a dropout layer for regularization.
-
-    Parameters
-    ----------
-    config : object
-        The configuration object containing model parameters. It should have the following attributes:
-        - hidden_size: The size of the hidden layer in the transformer model.
-        - intermediate_size: The size of the intermediate layer in the Feed Forward network.
-        - hidden_dropout_prob: The dropout probability for the hidden layer.
-
-    Attributes
-    ----------
-    linear1 : torch.nn.Module
-        The first linear transformation layer.
-    linear2 : torch.nn.Module
-        The second linear transformation layer.
-    gelu : torch.nn.Module
-        The Gaussian Error Linear Unit (GELU) activation function.
-    dropout : torch.nn.Module
-        The dropout layer for regularization.
+    Args:
+        config: Configuration with hidden_size=768, intermediate_size=3072.
     """
 
     def __init__(self, config):
         super().__init__()
-        self.linear1 = nn.Linear(config.hidden_size, config.intermediate_size)
-        self.linear2 = nn.Linear(config.intermediate_size, config.hidden_size)
+        self.linear1 = nn.Linear(
+            config.hidden_size, config.intermediate_size
+        )  # 768 → 3072
+        self.linear2 = nn.Linear(
+            config.intermediate_size, config.hidden_size
+        )  # 3072 → 768
         self.gelu = nn.GELU()
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
     def forward(self, x):
         """
-        Defines the computation performed at every call.
+        Forward pass through feed-forward network.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            The input tensor to the Feed Forward network layer.
+        Args:
+            x (torch.Tensor): Input of shape (batch_size, seq_len, 768).
 
-        Returns
-        -------
-        x : torch.Tensor
-            The output tensor after passing through the Feed Forward network layer.
+        Returns:
+            torch.Tensor: Output of shape (batch_size, seq_len, 768).
         """
         x = self.linear1(x)
         x = self.gelu(x)
@@ -174,28 +160,12 @@ class FeedForward(nn.Module):
 
 class TransformerEncoderLayer(nn.Module):
     """
-    This class implements the Transformer Encoder Layer as part of the Transformer model.
+    Single Transformer encoder layer with Pre-LayerNorm architecture.
 
-    Each encoder layer consists of a Multi-Head Attention mechanism followed by a Position-wise
-    Feed Forward neural network. Additionally, residual connections around each of the two
-    sub-layers are employed, followed by layer normalization.
+    Contains: LayerNorm → MultiHeadAttention → Residual → LayerNorm → FeedForward → Residual
 
-    Parameters
-    ----------
-    config : object
-        The configuration object containing model parameters. It should have the following attributes:
-        - hidden_size: The size of the hidden layer in the transformer model.
-
-    Attributes
-    ----------
-    layer_norm_1 : torch.nn.Module
-        The first layer normalization.
-    layer_norm_2 : torch.nn.Module
-        The second layer normalization.
-    attention : MultiHeadAttention
-        The MultiHeadAttention mechanism in the encoder layer.
-    feed_forward : FeedForward
-        The FeedForward neural network in the encoder layer.
+    Args:
+        config: Configuration with hidden_size=768.
     """
 
     def __init__(self, config):
@@ -207,359 +177,165 @@ class TransformerEncoderLayer(nn.Module):
 
     def forward(self, x):
         """
-        Defines the computation performed at every call.
+        Forward pass through encoder layer.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            The input tensor to the Transformer Encoder Layer.
+        Args:
+            x (torch.Tensor): Input of shape (batch_size, seq_len, 768).
 
-        Returns
-        -------
-        x : torch.Tensor
-            The output tensor after passing through the Transformer Encoder Layer.
+        Returns:
+            torch.Tensor: Output of shape (batch_size, seq_len, 768).
         """
-        # Apply layer norm before attention and feed-forward (Pre-LN)
+        # Attention sub-layer with residual connection
         hidden_state = self.layer_norm_1(x)
-        # Attention block with residual connection
-        x = x + self.attention(hidden_state)
-        # Feed-forward block with residual connection
-        x = x + self.feed_forward(
-            self.layer_norm_2(x)
-        )  # Apply layer norm before feed-forward
+        attention_output = self.attention(hidden_state)
+        x = x + attention_output
+
+        # Feed-forward sub-layer with residual connection
+        normalized_x = self.layer_norm_2(x)
+        ffn_output = self.feed_forward(normalized_x)
+        x = x + ffn_output
+
         return x
 
 
 class Embeddings(nn.Module):
     """
-    This class implements the Embeddings layer as part of the Transformer model.
+    Token and position embeddings with layer normalization and dropout.
 
-    The Embeddings layer is responsible for converting input tokens and their corresponding positions
-    into dense vectors of fixed size. The token embeddings and position embeddings are summed up
-    and subsequently layer-normalized and passed through a dropout layer for regularization.
+    Converts token IDs to dense vectors and adds positional information.
 
-    Token Embedding Table (30,522 × 768)
-                        Hidden Size (768 columns)
-                    ┌─────────────────────────────┐
-    Token ID 0       │ 0.1  -0.3   0.8  ...  0.2  │
-    Token ID 1       │ -0.2  0.5   0.1  ...  -0.4 │
-    Token ID 2       │ 0.7   0.0  -0.6  ...  0.9  │
-    ...              │ ...   ...   ...  ...  ...  │
-    Token ID 16078   │ 0.3  -0.1   0.4  ...  0.7  │ ← "Congratulations"
-    ...              │ ...   ...   ...  ...  ...  │
-    Token ID 30521   │ -0.5  0.8   0.2  ...  -0.1 │
-                    └─────────────────────────────┘
-
-    Embedding Table (Fixed Size):
-    vocab_size × hidden_size = 30,522 × 768
-
-    Token ID 0    │ [features...] │ ← 768 values
-    Token ID 1    │ [features...] │
-    ...           │ ...           │
-    Token ID 101  │ [features...] │ ← Lookup for token 101
-    ...           │ ...           │
-    Token ID 2023 │ [features...] │ ← Lookup for token 2023
-    ...           │ ...           │
-    Token ID 30521│ [features...] │
-
-    Input (Variable Size):
-    batch_size × seq_length = 2 × 3
-
-    Batch 1: [101, 2023, 2003]  ← 3 tokens to look up
-    Batch 2: [101, 7592, 2088]  ← 3 tokens to look up
-
-    ## The Complete Conversion Process: Sparse Token IDs → Dense Vectors
-
-    The embedding layer serves as a bridge between discrete tokens (what tokenizers produce)
-    and continuous vectors (what neural networks need). It essentially uses lookup tables to
-    convert sparse token IDs into rich, dense representations.
-
-    ### Step 1: Tokenizer Output (Input to Embeddings)
-    ```
-    text = "Hello world"
-    input_ids = [101, 7592, 2088, 102]  # Sparse integers from tokenizer
-    input_ids.shape = (batch_size, seq_length)  # e.g., (1, 4)
-    ```
-
-    ### Step 2: Token Embedding Lookup
-    ```
-    self.token_embeddings = nn.Embedding(vocab_size, hidden_size)
-    # With BERT-base-uncased: nn.Embedding(30522, 768)
-    # Creates a lookup table: 30,522 rows × 768 columns
-
-    Token ID 101  → Row 101  → [0.1, -0.2, 0.8, ..., 0.3]  (768 values)
-    Token ID 7592 → Row 7592 → [0.5,  0.1, -0.4, ..., 0.7]  (768 values)
-    Token ID 2088 → Row 2088 → [-0.1, 0.9, 0.2, ..., -0.5] (768 values)
-    Token ID 102  → Row 102  → [0.8, -0.4, 0.1, ..., 0.9]  (768 values)
-
-    Result: token_embeddings.shape = (batch_size, seq_length, hidden_size)
-    ```
-
-    ### Step 3: Position Embedding Lookup
-    ```
-    position_ids = [0, 1, 2, 3]  # Created dynamically based on seq_length
-    self.position_embeddings = nn.Embedding(max_position_embeddings, hidden_size)
-    # With BERT-base-uncased: nn.Embedding(512, 768)
-
-    Position 0 → Row 0 → [0.2,  0.9, -0.1, ..., 0.4]  (768 values)
-    Position 1 → Row 1 → [-0.3, 0.6,  0.7, ..., -0.2] (768 values)
-    Position 2 → Row 2 → [0.8, -0.4,  0.1, ..., 0.9]  (768 values)
-    Position 3 → Row 3 → [0.1,  0.5, -0.8, ..., 0.6]  (768 values)
-
-    Result: position_embeddings.shape = (1, seq_length, hidden_size)
-    ```
-
-    ### Step 4: Element-wise Addition + Normalization
-    ```
-    embeddings = token_embeddings + position_embeddings  # Broadcasting
-    embeddings = layer_norm(embeddings)
-    embeddings = dropout(embeddings)
-
-    Final shape: (batch_size, seq_length, hidden_size)
-    ```
-
-    ## Key Dimensions (BERT-base-uncased defaults):
-
-    | Parameter | Value | What It Represents |
-    |-----------|-------|-------------------|
-    | `vocab_size` | 30,522 | Total unique tokens the model knows |
-    | `hidden_size` | 768 | Features per token (fixed architecture choice) |
-    | `max_position_embeddings` | 512 | Maximum sequence length allowed |
-    | `seq_length` | Variable | Number of tokens in current input |
-
-    ## Embedding Table Sizes:
-    - **Token Embedding Table**: (30,522 × 768) = 23,440,896 parameters
-    - **Position Embedding Table**: (512 × 768) = 393,216 parameters
-
-    ## Output Size Examples:
-    ```
-    # Short text: "Hello"
-    input_ids.shape = (1, 1) → embeddings.shape = (1, 1, 768)
-
-    # Medium text: 50 tokens
-    input_ids.shape = (1, 50) → embeddings.shape = (1, 50, 768)
-
-    # Batch processing: 8 sequences of 100 tokens each
-    input_ids.shape = (8, 100) → embeddings.shape = (8, 100, 768)
-    ```
-
-    ## Why This Design Works:
-    1. **Efficient**: O(1) lookup time - just indexing into tables
-    2. **Learnable**: Each token learns its own 768-dimensional representation
-    3. **Flexible**: Handles any sequence length up to max_position_embeddings
-    4. **Dense**: Rich 768-dimensional representations vs sparse token IDs
-    5. **Semantic**: Similar tokens learn similar vector representations
-
-    Parameters
-    ----------
-    config : object
-        The configuration object containing model parameters. It should have the following attributes:
-        - vocab_size: The size of the vocabulary (corrected from vocal_size in notebook).
-        - hidden_size: The size of the hidden layer in the transformer model.
-        - max_position_embeddings: The maximum number of positions that the model can accept.
-        - layer_norm_eps: Epsilon for layer normalization (added based on common practice).
-        - hidden_dropout_prob: Dropout probability (added based on common practice).
-
-    Attributes
-    ----------
-    token_embeddings : torch.nn.Module
-        The embedding layer for the tokens.
-    position_embeddings : torch.nn.Module
-        The embedding layer for the positions.
-    layer_norm : torch.nn.Module
-        The layer normalization.
-    dropout : torch.nn.Module
-        The dropout layer for regularization.
+    Args:
+        config: Configuration with vocab_size=30522, hidden_size=768, max_position_embeddings=512.
     """
 
     def __init__(self, config):
         super().__init__()
-        # Ensure config has vocab_size, not vocal_size
         if not hasattr(config, "vocab_size"):
             raise AttributeError("Config object must have 'vocab_size' attribute.")
+
         self.token_embeddings = nn.Embedding(config.vocab_size, config.hidden_size)
         self.position_embeddings = nn.Embedding(
             config.max_position_embeddings, config.hidden_size
         )
-        # Use eps from config if available, otherwise default
+
         layer_norm_eps = getattr(config, "layer_norm_eps", 1e-12)
         self.layer_norm = nn.LayerNorm(config.hidden_size, eps=layer_norm_eps)
-        # Use hidden_dropout_prob from config if available, otherwise default to 0.0
+
         dropout_prob = getattr(config, "hidden_dropout_prob", 0.0)
         self.dropout = nn.Dropout(dropout_prob)
 
     def forward(self, input_ids):
         """
-        Defines the computation performed at every call.
+        Forward pass through embeddings.
 
-        Parameters
-        ----------
-        input_ids : torch.Tensor
-            The input tensor to the Embeddings layer, typically the token ids (shape: batch_size, seq_length).
+        Args:
+            input_ids (torch.Tensor): Token IDs of shape (batch_size, seq_length).
 
-        Returns
-        -------
-        embeddings : torch.Tensor
-            The output tensor after passing through the Embeddings layer (shape: batch_size, seq_length, hidden_size).
+        Returns:
+            torch.Tensor: Embeddings of shape (batch_size, seq_length, 768).
         """
-        # Extract sequence length from input shape
-        # input_ids.shape = (batch_size, seq_length)
         seq_length = input_ids.size(1)
 
-        # Create position IDs dynamically based on input sequence length
-        # position_ids will be [0, 1, 2, ..., seq_length-1]
-        # unsqueeze(0) adds batch dimension: shape becomes (1, seq_length)
-        # This allows broadcasting when adding to token_embeddings
+        # Create position IDs [0, 1, 2, ..., seq_length-1]
         position_ids = torch.arange(
             seq_length, dtype=torch.long, device=input_ids.device
         ).unsqueeze(0)
 
-        # LOOKUP PROCESS: Convert sparse token IDs to dense vectors
-        # Token embedding lookup: each token ID → 768-dimensional vector
-        # input_ids shape: (batch_size, seq_length)
-        # token_embeddings shape: (batch_size, seq_length, hidden_size)
+        # Get token and position embeddings
         token_embeddings = self.token_embeddings(input_ids)
-
-        # Position embedding lookup: each position → 768-dimensional vector
-        # position_ids shape: (1, seq_length)
-        # position_embeddings shape: (1, seq_length, hidden_size)
         position_embeddings = self.position_embeddings(position_ids)
 
-        # Element-wise addition: combine token and position information
-        # Broadcasting: (batch_size, seq_length, hidden_size) + (1, seq_length, hidden_size)
-        # Result: (batch_size, seq_length, hidden_size)
+        # Combine and normalize
         embeddings = token_embeddings + position_embeddings
-
-        # Apply layer normalization for training stability
         embeddings = self.layer_norm(embeddings)
-
-        # Apply dropout for regularization
         embeddings = self.dropout(embeddings)
 
-        # Final output: (batch_size, seq_length, hidden_size)
-        # Each token now has a rich 768-dimensional representation that includes:
-        # 1. Token semantic information (from token_embeddings)
-        # 2. Positional information (from position_embeddings)
         return embeddings
 
 
-class TransformerEncoder(nn.Module):  # Renamed from TransformerEncode for clarity
+class TransformerEncoder(nn.Module):
     """
-    This class implements the Transformer Encoder as part of the Transformer model.
+    Complete Transformer encoder with embeddings and 12 encoder layers (BERT-base).
 
-    The Transformer Encoder consists of a series of identical layers, each with a self-attention mechanism
-    and a position-wise fully connected feed-forward network. The input to each layer is first processed by
-    the Embeddings layer which converts input tokens and their corresponding positions into dense vectors of
-    fixed size.
-
-    Parameters
-    ----------
-    config : object
-        The configuration object containing model parameters. It should have the following attributes:
-        - num_hidden_layers: The number of hidden layers in the encoder (corrected from num_hidden_layer).
-
-    Attributes
-    ----------
-    embeddings : Embeddings
-        The embedding layer which converts input tokens and positions into dense vectors.
-    layers : torch.nn.ModuleList
-        The list of Transformer Encoder Layers.
+    Args:
+        config: Configuration with num_hidden_layers=12.
     """
 
     def __init__(self, config):
         super().__init__()
         self.embeddings = Embeddings(config)
-        # Ensure config has num_hidden_layers attribute
+
         if not hasattr(config, "num_hidden_layers"):
             raise AttributeError(
                 "Config object must have 'num_hidden_layers' attribute."
             )
-        # Initialize a list of Transformer Encoder Layers. The number of layers is defined by config.num_hidden_layers
+
+        # Stack of 12 encoder layers
         self.layers = nn.ModuleList(
             [TransformerEncoderLayer(config) for _ in range(config.num_hidden_layers)]
         )
 
-    def forward(
-        self, input_ids
-    ):  # Changed input from generic x to input_ids for clarity
+    def forward(self, input_ids):
         """
-        Defines the computation performed at every call.
+        Forward pass through complete encoder.
 
-        Parameters
-        ----------
-        input_ids : torch.Tensor
-            The input tensor (token ids) to the Transformer Encoder (shape: batch_size, seq_length).
+        Args:
+            input_ids (torch.Tensor): Token IDs of shape (batch_size, seq_length).
 
-        Returns
-        -------
-        hidden_states : torch.Tensor
-            The output tensor (hidden states) after passing through the Transformer Encoder
-            (shape: batch_size, seq_length, hidden_size).
+        Returns:
+            torch.Tensor: Contextualized representations of shape (batch_size, seq_length, 768).
         """
+        # Convert token IDs to embeddings
         hidden_states = self.embeddings(input_ids)
+
+        # Process through all encoder layers
         for layer in self.layers:
             hidden_states = layer(hidden_states)
+
         return hidden_states
 
 
 class TransformerForSequenceClassification(nn.Module):
     """
-    This class implements the Transformer model for sequence classification tasks.
+    Complete Transformer model for sequence classification.
 
-    The model architecture consists of a Transformer encoder, followed by a dropout layer for regularization,
-    and a linear layer for classification. The output from the [CLS] token's embedding is used for the classification task.
+    Uses [CLS] token representation for classification after encoder processing.
 
-    Parameters
-    ----------
-    config : object
-        The configuration object containing model parameters. It should have the following attributes:
-        - hidden_size: The size of the hidden layer in the transformer model.
-        - hidden_dropout_prob: The dropout probability for the hidden layer.
-        - num_labels: The number of labels in the classification task.
-
-    Attributes
-    ----------
-    encoder : TransformerEncoder
-        The Transformer Encoder.
-    dropout : torch.nn.Module
-        The dropout layer for regularization.
-    classifier : torch.nn.Module
-        The classification layer.
+    Args:
+        config: Configuration with hidden_size=768, num_labels=2.
     """
 
     def __init__(self, config):
         super().__init__()
-        self.encoder = TransformerEncoder(config)  # Use renamed TransformerEncoder
-        # Use hidden_dropout_prob from config if available, otherwise default to 0.0
+        self.encoder = TransformerEncoder(config)
+
         dropout_prob = getattr(config, "hidden_dropout_prob", 0.0)
         self.dropout = nn.Dropout(dropout_prob)
-        # Ensure config has num_labels attribute
+
         if not hasattr(config, "num_labels"):
             raise AttributeError("Config object must have 'num_labels' attribute.")
+
+        # Classification head: 768 → num_labels
         self.classifier = nn.Linear(config.hidden_size, config.num_labels)
 
-    def forward(
-        self, input_ids
-    ):  # Changed input from generic x to input_ids for clarity
+    def forward(self, input_ids):
         """
-        Defines the computation performed at every call.
+        Forward pass through complete model.
 
-        Parameters
-        ----------
-        input_ids : torch.Tensor
-            The input tensor (token ids) to the Transformer model (shape: batch_size, seq_length).
+        Args:
+            input_ids (torch.Tensor): Token IDs of shape (batch_size, seq_length).
 
-        Returns
-        -------
-        logits : torch.Tensor
-            The output tensor (logits) after passing through the Transformer model and the classification layer
-            (shape: batch_size, num_labels).
+        Returns:
+            torch.Tensor: Classification logits of shape (batch_size, num_labels).
         """
-        # Pass input_ids to the encoder
+        # Encode input sequence
         encoder_output = self.encoder(input_ids)
-        # Select the hidden state corresponding to the first token ([CLS] token equivalent)
+
+        # Extract [CLS] token (first token)
         pooled_output = encoder_output[:, 0, :]
 
+        # Apply dropout and classify
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
+
         return logits

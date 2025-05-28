@@ -1,106 +1,210 @@
-# Transformer Encoder from Scratch
+# Transformer Model Training
 
-This project contains a Python implementation of a Transformer Encoder, adapted from a Jupyter Notebook, focusing on building the core components like Multi-Head Attention and Feed-Forward layers from scratch using PyTorch.
+This directory contains the implementation and training code for a Transformer-based sequence classification model, specifically designed for spam detection tasks.
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 training/
-├── pyproject.toml    # Project metadata and dependencies for uv/pip
-├── models.py         # Contains PyTorch nn.Module classes for the Transformer components
-├── main.py           # Simple script for running basic inference on a single sentence
-├── train.py          # Main script for training the model on a dataset
-├── data/
-│   ├── __init__.py
-│   └── preparation.py # Data loading and tokenization logic
-├── utils/
-│   ├── __init__.py
-│   └── helpers.py    # Utility functions (device setup, argument parsing)
-└── README.md         # This file
+├── README.md                    # This file - project overview
+├── MODEL_ARCHITECTURE.md        # 📖 Detailed model architecture documentation
+├── models.py                    # 🏗️ Transformer model implementation
+├── inference.py                 # 🔮 Model inference and prediction
+├── train.py                     # 🚀 Training script
+├── config.py                    # ⚙️ Model configuration
+├── data_loader.py              # 📊 Data loading utilities
+└── utils.py                    # 🛠️ Helper functions
 ```
 
-## Setup using uv
+## 🏗️ Model Architecture
 
-It is recommended to use a virtual environment.
+Our implementation follows the **encoder-only Transformer architecture** (similar to BERT) for sequence classification. The model consists of:
 
-1.  **Install uv (if you haven't already):**
+- **Embeddings Layer**: Converts token IDs to dense vectors with positional encoding
+- **12 Encoder Layers**: Each with multi-head attention and feed-forward networks
+- **Classification Head**: Uses [CLS] token for sequence-level predictions
 
-    ```bash
-    # Linux/macOS
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    # Windows
-    powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-    ```
+### Key Features
 
-    Alternatively, see the [official uv installation guide](https://github.com/astral-sh/uv#installation).
+- **BERT-base Configuration**: 768 hidden size, 12 attention heads, 12 layers
+- **Pre-LayerNorm Architecture**: Better training stability
+- **Multi-Head Attention**: 12 parallel attention heads for diverse relationship modeling
+- **Position-wise Feed-Forward**: 768 → 3072 → 768 with GELU activation
 
-2.  **Create and activate a virtual environment:**
-    Navigate to the `training` directory in your terminal.
+## 📖 Detailed Documentation
 
-    ```bash
-    # Create a virtual environment named .venv
-    uv venv
+For comprehensive architecture explanations, mathematical formulas, dimension flows, and component deep-dives, see:
 
-    # Activate the virtual environment
-    # Linux/macOS
-    source .venv/bin/activate
-    # Windows (Command Prompt)
-    .venv\Scripts\activate.bat
-    # Windows (PowerShell)
-    .venv\Scripts\Activate.ps1
-    ```
+**[📋 MODEL_ARCHITECTURE.md](MODEL_ARCHITECTURE.md)**
 
-3.  **Install dependencies:**
-    While inside the `training` directory with the virtual environment activated:
-    ```bash
-    uv pip install -e .
-    ```
-    This command installs the packages listed in `pyproject.toml` (torch, transformers, datasets, tqdm) and installs the current project (`training`) in editable mode.
+This document includes:
 
-## Running Basic Inference
+- Complete mathematical formulations
+- Step-by-step processing explanations
+- Mermaid architecture diagrams
+- BERT-base configuration details
+- Dimension flow examples
+- Component interaction patterns
 
-Ensure your virtual environment is activated.
+## 🚀 Quick Start
 
-Navigate to the `training` directory and run the `main.py` script for a quick check on a single sentence:
+### 1. Model Configuration
 
-```bash
-python main.py
+```python
+from config import ModelConfig
+
+config = ModelConfig(
+    vocab_size=30522,           # BERT-base vocabulary
+    hidden_size=768,            # Embedding dimension
+    num_attention_heads=12,     # Multi-head attention
+    num_hidden_layers=12,       # Encoder layers
+    intermediate_size=3072,     # Feed-forward hidden size
+    max_position_embeddings=512, # Max sequence length
+    num_labels=2                # Binary classification
+)
 ```
 
-## Running Training
+### 2. Model Initialization
 
-Ensure your virtual environment is activated.
+```python
+from models import TransformerForSequenceClassification
 
-Navigate to the `training` directory and run the `train.py` script.
+model = TransformerForSequenceClassification(config)
+print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
+```
 
-**Basic Usage (using default IMDB dataset):**
+### 3. Training
+
+```python
+python train.py --config config.json --data_path ../datasets/TREC2007/
+```
+
+### 4. Inference
+
+```python
+from inference import EmailClassifier
+
+classifier = EmailClassifier("path/to/trained/model")
+result = classifier.predict("This is a test email message")
+print(f"Prediction: {result['label']} (confidence: {result['confidence']:.3f})")
+```
+
+## 📊 Data Processing Pipeline
+
+The model expects preprocessed email data in the following format:
+
+```
+[CLS] email_from: sender@domain.com [SEP] email_to: recipient@domain.com [SEP] subject: Email Subject [SEP] message: Email content here
+```
+
+### Input Processing Flow:
+
+1. **Tokenization**: Text → Token IDs using BERT tokenizer
+2. **Embedding Lookup**: Token IDs → Dense vectors (768-dim)
+3. **Position Encoding**: Add positional information
+4. **Encoder Processing**: 12 layers of attention + feed-forward
+5. **Classification**: [CLS] token → Binary prediction
+
+## 🎯 Model Performance
+
+The model is designed for binary email classification:
+
+- **Class 0**: Ham (legitimate email)
+- **Class 1**: Spam (unwanted email)
+
+### Training Metrics:
+
+- **Loss Function**: CrossEntropyLoss
+- **Optimizer**: AdamW with learning rate scheduling
+- **Evaluation**: Accuracy, Precision, Recall, F1-Score
+
+## 🔧 Configuration Options
+
+Key hyperparameters in `config.py`:
+
+| Parameter             | Default | Description               |
+| --------------------- | ------- | ------------------------- |
+| `hidden_size`         | 768     | Model embedding dimension |
+| `num_attention_heads` | 12      | Number of attention heads |
+| `num_hidden_layers`   | 12      | Number of encoder layers  |
+| `intermediate_size`   | 3072    | Feed-forward hidden size  |
+| `hidden_dropout_prob` | 0.1     | Dropout probability       |
+| `learning_rate`       | 2e-5    | Training learning rate    |
+| `batch_size`          | 16      | Training batch size       |
+| `max_length`          | 512     | Maximum sequence length   |
+
+## 🛠️ Development
+
+### Code Structure
+
+- **`models.py`**: Clean, well-documented model implementation
+- **`train.py`**: Complete training loop with validation
+- **`inference.py`**: Production-ready inference pipeline
+- **`data_loader.py`**: Efficient data loading and preprocessing
+- **`utils.py`**: Utility functions for training and evaluation
+
+### Key Design Principles:
+
+1. **Modularity**: Each component is independently testable
+2. **Documentation**: Comprehensive docstrings and comments
+3. **Efficiency**: Optimized for both training and inference
+4. **Flexibility**: Easy to modify for different tasks
+
+## 📈 Usage Examples
+
+### Training a New Model
 
 ```bash
+# Train with default configuration
 python train.py
+
+# Train with custom config
+python train.py --config custom_config.json --epochs 5 --batch_size 32
+
+# Resume training from checkpoint
+python train.py --resume checkpoints/model_epoch_3.pt
 ```
 
-**Usage with Arguments:**
+### Model Inference
 
-You can customize the training process using command-line arguments. Here are some examples:
+```python
+# Single prediction
+classifier = EmailClassifier("trained_model.pt")
+result = classifier.predict("Your email text here")
 
-```bash
-# Train on a different dataset (e.g., 'ag_news') with 4 labels
-python train.py --dataset_name ag_news --num_labels 4 --text_column text --label_column label
-
-# Train for more epochs with a different learning rate and batch size
-python train.py --epochs 5 --lr 1e-5 --batch_size 16
-
-# Specify a different output directory for the saved model
-python train.py --output_dir ./my_custom_model
+# Batch prediction
+results = classifier.predict_batch([
+    "Email 1 content",
+    "Email 2 content",
+    "Email 3 content"
+])
 ```
 
-Run `python train.py --help` to see all available arguments.
+### Model Analysis
 
-This will:
+```python
+# Get attention weights for visualization
+model.eval()
+with torch.no_grad():
+    outputs = model(input_ids)
+    attention_weights = model.encoder.layers[0].attention.att_mats
+```
 
-- Load the specified configuration and tokenizer (default: `bert-base-uncased`).
-- Load and preprocess the specified dataset (default: `imdb`).
-- Instantiate the custom `TransformerForSequenceClassification` model.
-- Train the model for the specified number of epochs.
-- Perform validation after each epoch (if a validation/test split is available).
-- Save the trained model weights, configuration file, and tokenizer to the output directory (default: `./model_output`).
+## 🔍 Architecture Diagrams
+
+The model architecture is visualized in detail in [MODEL_ARCHITECTURE.md](MODEL_ARCHITECTURE.md), including:
+
+- **Complete Model Flow**: Input → Embeddings → Encoder → Classification
+- **Multi-Head Attention**: Parallel processing of 12 attention heads
+- **Encoder Layer**: Pre-LayerNorm design with residual connections
+- **Dimension Flow**: Tensor shapes through each component
+
+## 📚 References
+
+- [Attention Is All You Need](https://arxiv.org/abs/1706.03762) - Original Transformer paper
+- [BERT: Pre-training of Deep Bidirectional Transformers](https://arxiv.org/abs/1810.04805) - BERT architecture
+- [Layer Normalization](https://arxiv.org/abs/1607.06450) - Pre-LayerNorm benefits
+
+---
+
+For detailed technical documentation and mathematical explanations, see **[MODEL_ARCHITECTURE.md](MODEL_ARCHITECTURE.md)**.

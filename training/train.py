@@ -135,6 +135,10 @@ def main():
     model.train()  # Ensure model starts in training mode
     for epoch in range(args.epochs):
         total_loss = 0
+        # Add training accuracy tracking variables
+        train_correct_predictions = 0
+        train_total_predictions = 0
+        
         for batch_idx, batch in enumerate(train_dataloader):
             # Move batch to device
             input_ids = batch["input_ids"].to(device)
@@ -144,6 +148,13 @@ def main():
             outputs = model(input_ids=input_ids)
             loss = loss_fn(outputs, labels)
 
+            # Calculate training accuracy for this batch
+            with torch.no_grad():  # Don't need gradients for accuracy calculation
+                logits = outputs
+                predictions = torch.argmax(logits, dim=-1)
+                train_correct_predictions += (predictions == labels).sum().item()
+                train_total_predictions += labels.size(0)
+
             # Backward pass and optimization
             optimizer.zero_grad()
             loss.backward()
@@ -152,11 +163,16 @@ def main():
             total_loss += loss.item()
             global_step += 1
             progress_bar.update(1)
-            progress_bar.set_postfix({"Epoch": epoch + 1, "Loss": loss.item()})
+            progress_bar.set_postfix({
+                "Epoch": epoch + 1, 
+                "Loss": loss.item(),
+                "Batch Acc": f"{(predictions == labels).float().mean().item():.3f}"
+            })
             
             # Log batch metrics to wandb
             wandb.log({
                 "train/batch_loss": loss.item(),
+                "train/batch_accuracy": (predictions == labels).float().mean().item(),
                 "train/learning_rate": optimizer.param_groups[0]['lr'],
                 "train/global_step": global_step
             })
@@ -183,9 +199,18 @@ def main():
                     for old_file in checkpoint_files[:-3]:
                         os.remove(os.path.join(checkpoint_dir, old_file))
 
+        # Calculate epoch-level training metrics
         avg_train_loss = total_loss / len(train_dataloader)
+        train_accuracy = (
+            train_correct_predictions / train_total_predictions
+            if train_total_predictions > 0
+            else 0.0
+        )
+        
         print(
-            f"\nEpoch {epoch + 1}/{args.epochs} - Average Training Loss: {avg_train_loss:.4f}"
+            f"\nEpoch {epoch + 1}/{args.epochs} - "
+            f"Average Training Loss: {avg_train_loss:.4f} - "
+            f"Training Accuracy: {train_accuracy:.4f}"
         )
 
         # --- Validation ---
@@ -212,28 +237,29 @@ def main():
                     total_predictions += labels.size(0)
 
             avg_eval_loss = total_eval_loss / len(eval_dataloader)
-            accuracy = (
+            val_accuracy = (
                 correct_predictions / total_predictions
                 if total_predictions > 0
                 else 0.0
             )
             print(
-                f"Validation Loss: {avg_eval_loss:.4f} - Validation Accuracy: {accuracy:.4f}"
+                f"Validation Loss: {avg_eval_loss:.4f} - Validation Accuracy: {val_accuracy:.4f}"
             )
             
-            # Log epoch metrics to wandb
+            # Log epoch metrics to wandb (now including training accuracy)
             wandb.log({
                 "epoch": epoch + 1,
                 "train/epoch_loss": avg_train_loss,
+                "train/epoch_accuracy": train_accuracy,  # New: training accuracy
                 "val/loss": avg_eval_loss,
-                "val/accuracy": accuracy
+                "val/accuracy": val_accuracy
             })
             
             # Save the best model based on validation accuracy
-            if accuracy > best_accuracy:
-                best_accuracy = accuracy
+            if val_accuracy > best_accuracy:
+                best_accuracy = val_accuracy
                 best_model_path = os.path.join(output_dir, "best_model.pt")
-                print(f"New best accuracy: {best_accuracy:.4f}! Saving model to {best_model_path}")
+                print(f"New best validation accuracy: {best_accuracy:.4f}! Saving model to {best_model_path}")
                 # Save the best model
                 if isinstance(model, nn.DataParallel):
                     torch.save(model.module.state_dict(), best_model_path)
@@ -247,20 +273,28 @@ def main():
                     "global_step": global_step,
                     "model_state_dict": model.module.state_dict() if isinstance(model, nn.DataParallel) else model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
-                    "accuracy": accuracy,
+                    "val_accuracy": val_accuracy,
+                    "train_accuracy": train_accuracy,  # New: also save training accuracy
                     "loss": avg_eval_loss,
                 }
                 torch.save(checkpoint, best_checkpoint_path)
                 
                 # Log best model metrics to wandb
                 wandb.log({
-                    "best/accuracy": best_accuracy,
+                    "best/val_accuracy": best_accuracy,
+                    "best/train_accuracy": train_accuracy,  # New: training accuracy for best model
                     "best/val_loss": avg_eval_loss
                 })
                 
             model.train()  # Set back to train mode for next epoch
         else:
             print("Skipping validation as no evaluation dataloader is available.")
+            # If no validation, still log training metrics
+            wandb.log({
+                "epoch": epoch + 1,
+                "train/epoch_loss": avg_train_loss,
+                "train/epoch_accuracy": train_accuracy,
+            })
 
     # --- Save Final Model ---
     try:
